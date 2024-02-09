@@ -1,12 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Library.fs" />
+    <Compile Include="GeoPredictor.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ObservatoryFramework">
+      <HintPath>..\ObservatoryCore\ObservatoryFramework\bin\Release\net6.0\ObservatoryFramework.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
