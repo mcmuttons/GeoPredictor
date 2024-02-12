@@ -3,9 +3,11 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Predictor.fs" />
     <Compile Include="GeoPredictor.fs" />
   </ItemGroup>
 
@@ -14,5 +16,4 @@
       <HintPath>..\ObservatoryCore\ObservatoryFramework\bin\Release\net6.0\ObservatoryFramework.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>
