@@ -18,24 +18,18 @@ type Worker() =
 
     let GridCollection = new ObservableCollection<obj>()
 
-    let geoSignalType = "$SAA_SignalType_Geological"
+    let geoSignalType = "$SAA_SignalType_Geological;"
+            
+    let BuildGridRows bodyDetails =
+        bodyDetails |>
+            Seq.map (fun d -> 
+                GeoRow(
+                    d.Name, 
+                    d.Count.ToString() , 
+                    "Some fucken geology, I dunno", 
+                    "Bomb ass methane volcanism", 
+                    "Frickin' cold!"))
 
-    let UpdateUIGrid(worker) =
-        if Core.IsLogMonitorBatchReading then ()
-        else
-            GeoBodies
-            |> Seq.iter (fun kv -> 
-                Core.AddGridItem(
-                    worker, 
-                    GeoRow(
-                        kv.Value.Name, 
-                        kv.Value.Count.ToString() , 
-                        "Some fucken geology, I dunno", 
-                        "Bomb ass methane volcanism", 
-                        "Frickin' cold!")))       
-            ()       
-
-   
     interface IObservatoryWorker with 
         member this.Load core = 
             Core <- core
@@ -48,28 +42,28 @@ type Worker() =
         member this.JournalEvent event =
             match (event:JournalBase) with
                 | :? SAASignalsFound as signalsFound ->  
-                    let bodyId = { Id = signalsFound.BodyID; Address = signalsFound.SystemAddress }                            
+                    let bodyId = { Id = signalsFound.BodyID; Address = signalsFound.SystemAddress } 
 
-                    if not (GeoBodies.ContainsKey(bodyId)) then       
-                        GeoBodies.Add (
+                    if not (GeoBodies.ContainsKey(bodyId)) then  
+                        signalsFound.Signals 
+                        |> Seq.filter (fun s -> s.Type = geoSignalType)
+                        |> Seq.iter (fun s ->
+                            GeoBodies.Add (
                             bodyId,
-                            { Name = signalsFound.BodyName; Count = 69; GeosFound = Map.empty} )
-                        //signalsFound.Signals
-                        //|> Seq.map (fun s ->
-                        //                GeoBodies.Add(
-                        //                    bodyId,
-                        //                    { Name = signalsFound.BodyName; 
-                        //                      Count = s.Count
-                        //                      GeosFound = Map.empty<string, GeoDetail> }))
-                        //|> ignore
-                    else
-                        () 
+                            { Name = signalsFound.BodyName; Count = s.Count; GeosFound = Map.empty} ))
+                    () 
                 | _ -> ()
 
         member this.LogMonitorStateChanged args =
             if (LogMonitorStateChangedEventArgs.IsBatchRead args.NewState) then 
                 Core.ClearGrid(this, GeoRow())
-            else UpdateUIGrid(this)
+            else 
+                if not Core.IsLogMonitorBatchReading then
+                    let rows = 
+                        BuildGridRows GeoBodies.Values
+                        |> Seq.cast
+
+                    Core.AddGridItems(this, rows)
             ()
 
         member this.get_Name () = "GeoPredictor"
