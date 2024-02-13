@@ -45,16 +45,11 @@ type Worker() =
                     (floor b.Temp).ToString() + "K")
             | None ->
                 GeoRow(
-                    d.Name,
-                    d.Count.ToString(),
-                    "Failed to find matching scanned planet!",
-                    "",
-                    ""))
-                
-    let convertMaterialsToRecords (materials:MaterialComposition seq) =
-        materials
-        |> Seq.map (fun m -> { Name = m.Name; Percent = m.Percent })
-        |> Seq.toList
+                    d.Name, 
+                    d.Count.ToString(), 
+                    "Some fucken geology, I dunno", 
+                    "Bomb ass methane volcanism", 
+                    "Frickin' cold!" ))
 
     interface IObservatoryWorker with 
         member this.Load core = 
