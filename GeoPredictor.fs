@@ -3,20 +3,29 @@
 open Observatory.Framework
 open Observatory.Framework.Files.Journal
 open Observatory.Framework.Interfaces
-open Predictor
 open System.Collections.Generic
 open System.Collections.ObjectModel
 open System.Reflection
 
+type GeoDetail = { Type:string; Scanned:bool }
 type BodyDetail = { Name:string; Count:int; GeosFound:Map<string, GeoDetail> }
 type Material = { Name:string; Percent:float}
 type ScannedBody = { Name:string; Materials:seq<Material>; Volcanism:string; Temp:float }
+
+type GeoRow (body, count, geoType, volcanism, temp) =
+    member val Body = body
+    member val Count = count
+    member val Type = geoType
+    member val Volcanism = volcanism
+    member val Temp = temp
+
+    new() = GeoRow("", "", "", "", "")
 
 type Worker() =
     let mutable (Core:IObservatoryCore) = null
     let mutable (UI:PluginUI) = null
     let GeoBodies = new Dictionary<string, BodyDetail>() 
-    let SystemBodies = new Dictionary<string, ScannedBody>()
+    let ScannedBodies = new Dictionary<string, ScannedBody>()
 
     let GridCollection = new ObservableCollection<obj>()
 
@@ -27,10 +36,10 @@ type Worker() =
             Seq.map (fun d -> 
                 GeoRow(
                     d.Name, 
-                    d.Count.ToString() , 
+                    d.Count.ToString(), 
                     "Some fucken geology, I dunno", 
                     "Bomb ass methane volcanism", 
-                    "Frickin' cold!"))
+                    "Frickin' cold!" ))
 
     interface IObservatoryWorker with 
         member this.Load core = 

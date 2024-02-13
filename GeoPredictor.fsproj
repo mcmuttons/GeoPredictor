@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Predictor.fs" />
     <Compile Include="GeoPredictor.fs" />
   </ItemGroup>
 
