@@ -47,9 +47,9 @@ type Worker() =
                 GeoRow(
                     d.Name, 
                     d.Count.ToString(), 
-                    "Some fucken geology, I dunno", 
-                    "Bomb ass methane volcanism", 
-                    "Frickin' cold!" ))
+                    "Oh no! Unable to map geo signals to planetary data!", 
+                    "", 
+                    "" ))
 
     interface IObservatoryWorker with 
         member this.Load core = 
