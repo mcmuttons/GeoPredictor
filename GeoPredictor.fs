@@ -8,19 +8,21 @@ open System.Collections.Generic
 open System.Collections.ObjectModel
 open System.Reflection
 
-type BodyId = { Id:int; Address:uint64 }
 type BodyDetail = { Name:string; Count:int; GeosFound:Map<string, GeoDetail> }
+type Material = { Name:string; Percent:float}
+type ScannedBody = { Name:string; Materials:seq<Material>; Volcanism:string; Temp:float }
 
 type Worker() =
     let mutable (Core:IObservatoryCore) = null
     let mutable (UI:PluginUI) = null
-    let GeoBodies = new Dictionary<BodyId, BodyDetail>() 
+    let GeoBodies = new Dictionary<string, BodyDetail>() 
+    let SystemBodies = new Dictionary<string, ScannedBody>()
 
     let GridCollection = new ObservableCollection<obj>()
 
     let geoSignalType = "$SAA_SignalType_Geological;"
             
-    let BuildGridRows bodyDetails =
+    let BuildGridRows (bodyDetails:seq<BodyDetail>) =
         bodyDetails |>
             Seq.map (fun d -> 
                 GeoRow(
@@ -40,24 +42,22 @@ type Worker() =
             ()
 
         member this.JournalEvent event =
-            match (event:JournalBase) with
+            match (event:JournalBase) with                
                 | :? SAASignalsFound as signalsFound ->  
-                    let bodyId = { Id = signalsFound.BodyID; Address = signalsFound.SystemAddress } 
-
-                    if not (GeoBodies.ContainsKey(bodyId)) then  
+                    if not (GeoBodies.ContainsKey(signalsFound.BodyName)) then  
                         signalsFound.Signals 
                         |> Seq.filter (fun s -> s.Type = geoSignalType)
                         |> Seq.iter (fun s ->
                             GeoBodies.Add (
-                            bodyId,
-                            { Name = signalsFound.BodyName; Count = s.Count; GeosFound = Map.empty} ))
+                                signalsFound.BodyName,
+                                { Name = signalsFound.BodyName; Count = s.Count; GeosFound = Map.empty} ))
                     () 
                 | _ -> ()
 
         member this.LogMonitorStateChanged args =
-            if (LogMonitorStateChangedEventArgs.IsBatchRead args.NewState) then 
-                Core.ClearGrid(this, GeoRow())
-            else 
+            Core.ClearGrid(this, GeoRow())
+
+            if not (LogMonitorStateChangedEventArgs.IsBatchRead args.NewState) && not Core.IsLogMonitorBatchReading then 
                 if not Core.IsLogMonitorBatchReading then
                     let rows = 
                         BuildGridRows GeoBodies.Values
