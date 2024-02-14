@@ -14,13 +14,6 @@ type ScannedBody = { Name:string; Materials:Material list; Volcanism:string; Tem
 
 type GeoRow = { Body:string; Count:string; Type:string; Volcanism:string; Temp:string }
 
-//(body, count, geoType, volcanism, temp) =
-//    member val Body = body
-//    member val Count = count
-//    member val Type = geoType
-//    member val Volcanism = volcanism
-//    member val Temp = temp
-
 type Worker() =
     let mutable (Core:IObservatoryCore) = null
     let mutable (UI:PluginUI) = null
