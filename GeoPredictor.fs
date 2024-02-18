@@ -28,16 +28,21 @@ type Worker() =
     let geoSignalType = "$SAA_SignalType_Geological;"
     let version = Assembly.GetCallingAssembly().GetName().Version.ToString()         
    
-    let buildGridRows currentSystem (scannedBodies:Map<BodyId, ScannedBody>) =
-        scannedBodies
-        |> Map.filter (fun k _ -> k.SystemAddress = currentSystem)
-        |> Map.map (fun _ body ->
+    let buildGridRow bodyId body (geoBodies:Map<BodyId,BodyDetail>) =
+        match geoBodies.TryFind bodyId with
+        | Some detail -> 
             { Body = body.Name;
-              Count = "unknown";
+              Count = detail.Count.ToString();
               Type = "Some fucken geology, I dunno";
               Volcanism = body.Volcanism;
-              Temp = (floor body.Temp).ToString() + "K" }      
-        )
+              Temp = (floor body.Temp).ToString() + "K" }  
+        | None ->
+            { Body = "Failed to link body to details!"; Count = ""; Type = ""; Volcanism = ""; Temp = "" }                
+
+    let buildGridRows currentSystem geoBodies scannedBodies =
+        scannedBodies
+        |> Map.filter (fun k _ -> k.SystemAddress = currentSystem)
+        |> Map.map (fun id body -> buildGridRow id body geoBodies)
 
     let buildNullRow = { Body = null; Count = null; Type = null; Volcanism = null; Temp = null }
     let buildHeaderRow = { Body = "GeoPredictor v" + version; Count = ""; Type = ""; Volcanism = ""; Temp = "" }
@@ -76,7 +81,7 @@ type Worker() =
                             ScannedBodies <- ScannedBodies.Add(
                                 { BodyName = scan.BodyName; SystemAddress = currentSystem },
                                 { Name = scan.BodyName; Volcanism = scan.Volcanism; Temp = scan.SurfaceTemperature })
-                            buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                            buildGridRows currentSystem GeoBodies ScannedBodies |> updateGrid this Core
                         | false -> ()
 
                 | :? SAASignalsFound as signalsFound ->  
@@ -86,17 +91,17 @@ type Worker() =
                         GeoBodies <- GeoBodies.Add (
                             { BodyName = signalsFound.BodyName; SystemAddress = signalsFound.SystemAddress },
                             { Name = signalsFound.BodyName; Count = s.Count; GeosFound = Map.empty} ))
-                    buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                    buildGridRows currentSystem GeoBodies ScannedBodies |> updateGrid this Core
 
                 | :? FSDJump as jump ->
                     if not ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) then 
                         currentSystem <- setCurrentSystem currentSystem jump.SystemAddress
-                        buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                        buildGridRows currentSystem GeoBodies ScannedBodies |> updateGrid this Core
                                 
 
                 | :? Location as location ->
                     currentSystem <- setCurrentSystem currentSystem location.SystemAddress
-                    buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                    buildGridRows currentSystem GeoBodies ScannedBodies |> updateGrid this Core
 
                 | _ -> ()
 
@@ -104,7 +109,7 @@ type Worker() =
             if LogMonitorStateChangedEventArgs.IsBatchRead args.NewState then
                 Core.ClearGrid(this, buildNullRow)
             elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
-                buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                buildGridRows currentSystem GeoBodies ScannedBodies |> updateGrid this Core
 
         member this.get_Name () = "GeoPredictor"
         member this.get_Version () = version
