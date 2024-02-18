@@ -3,14 +3,14 @@
 open Observatory.Framework
 open Observatory.Framework.Files.Journal
 open Observatory.Framework.Interfaces
-open System.Collections.Generic
 open System.Collections.ObjectModel
 open System.Reflection
 
 type GeoDetail = { Type:string; Scanned:bool }
 type BodyDetail = { Name:string; Count:int; GeosFound:Map<string, GeoDetail> }
 type Material = { Name:string; Percent:float32}
-type ScannedBody = { Name:string; Materials:Material list; Volcanism:string; Temp:float32 }
+type ScannedBody = { Name:string; Volcanism:string; Temp:float32 }
+type BodyId = { BodyName:string; SystemAddress:uint64 }
 
 type GeoRow = { Body:string; Count:string; Type:string; Volcanism:string; Temp:string }
 
@@ -19,7 +19,7 @@ type Worker() =
     // mutable
     let mutable (Core:IObservatoryCore) = null
     let mutable (UI:PluginUI) = null
-    let mutable (currentSystem:uint64) = 0UL
+    let mutable currentSystem = 0UL
     let mutable GeoBodies = Map.empty 
     let mutable ScannedBodies = Map.empty
     let mutable GridCollection = ObservableCollection<obj>()
@@ -28,19 +28,18 @@ type Worker() =
     let geoSignalType = "$SAA_SignalType_Geological;"
     let version = Assembly.GetCallingAssembly().GetName().Version.ToString()         
    
-    let buildGridRows (bodyDetails:BodyDetail seq) scannedBodies =
-        bodyDetails
-        |> Seq.map (fun d ->
-            match scannedBodies |> Seq.tryFind(fun b -> b.Name = d.Name) with
-            | Some b ->
-                { Body = d.Name; 
-                  Count = d.Count.ToString(); 
-                  Type = "Some fucken geology, I dunno";
-                  Volcanism = b.Volcanism;
-                  Temp = (floor b.Temp).ToString() + "K" }
-            | None ->
-                { Body = d.Name; Count = d.Count.ToString(); Type = "Oh no! Unable to map geo signals to planetary data!"; Volcanism = ""; Temp = "" } )
+    let buildGridRows currentSystem (scannedBodies:Map<BodyId, ScannedBody>) =
+        scannedBodies
+        |> Map.filter (fun k _ -> k.SystemAddress = currentSystem)
+        |> Map.map (fun _ body ->
+            { Body = body.Name;
+              Count = "unknown";
+              Type = "Some fucken geology, I dunno";
+              Volcanism = body.Volcanism;
+              Temp = (floor body.Temp).ToString() + "K" }      
+        )
 
+    let buildNullRow = { Body = null; Count = null; Type = null; Volcanism = null; Temp = null }
     let buildHeaderRow = { Body = "GeoPredictor v" + version; Count = ""; Type = ""; Volcanism = ""; Temp = "" }
 
     let setCurrentSystem oldSystem newSystem = 
@@ -48,59 +47,64 @@ type Worker() =
             | true -> newSystem
             | false -> oldSystem
 
-    let updateGrid worker gridRows =
-        match Core.IsLogMonitorBatchReading with
+    let updateGrid worker (core:IObservatoryCore) (gridRows:Map<_,_>) =
+        match core.IsLogMonitorBatchReading with
             | true -> ()
             | false ->
-                Core.ClearGrid(worker, buildHeaderRow)
-                Core.AddGridItems(worker, Seq.cast(gridRows))
+                core.ClearGrid(worker, buildNullRow)
+                core.AddGridItem(worker, buildHeaderRow)
+                core.AddGridItems(worker, Seq.cast(gridRows.Values))
+
+    let isNotNullOrEmpty string =
+        match string with
+            | null -> false
+            | "" -> false
+            | _ -> true
 
     interface IObservatoryWorker with 
         member this.Load core = 
             Core <- core
             
-            GridCollection.Add(buildHeaderRow)
+            GridCollection.Add(buildNullRow)
             UI <- PluginUI(GridCollection)
 
         member this.JournalEvent event =
             match (event:JournalBase) with 
                 | :? Scan as scan ->
-                    if not (ScannedBodies.ContainsKey(scan.BodyName)) then
-                        ScannedBodies <- ScannedBodies.Add (
-                            scan.BodyName,
-                            { Name = scan.BodyName; Materials = List.empty; Volcanism = scan.Volcanism; Temp = scan.SurfaceTemperature })
-                        buildGridRows GeoBodies.Values ScannedBodies.Values |> updateGrid this
+                    match scan.Landable && scan.Volcanism |> isNotNullOrEmpty with
+                        | true -> 
+                            ScannedBodies <- ScannedBodies.Add(
+                                { BodyName = scan.BodyName; SystemAddress = currentSystem },
+                                { Name = scan.BodyName; Volcanism = scan.Volcanism; Temp = scan.SurfaceTemperature })
+                            buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                        | false -> ()
 
                 | :? SAASignalsFound as signalsFound ->  
-                    if not (GeoBodies.ContainsKey(signalsFound.BodyName)) then  
-                        signalsFound.Signals 
-                        |> Seq.filter (fun s -> s.Type = geoSignalType)
-                        |> Seq.iter (fun s ->
-                            GeoBodies <- GeoBodies.Add (
-                                signalsFound.BodyName,
-                                { Name = signalsFound.BodyName; 
-                                  Count = s.Count; 
-                                  GeosFound = Map.empty} ))
-                        buildGridRows GeoBodies.Values ScannedBodies.Values |> updateGrid this
+                    signalsFound.Signals 
+                    |> Seq.filter (fun s -> s.Type = geoSignalType)
+                    |> Seq.iter (fun s ->
+                        GeoBodies <- GeoBodies.Add (
+                            { BodyName = signalsFound.BodyName; SystemAddress = signalsFound.SystemAddress },
+                            { Name = signalsFound.BodyName; Count = s.Count; GeosFound = Map.empty} ))
+                    buildGridRows currentSystem ScannedBodies |> updateGrid this Core
 
                 | :? FSDJump as jump ->
-                    match ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) with
-                        | true -> ()
-                        | false -> 
-                            currentSystem <- setCurrentSystem currentSystem jump.SystemAddress
-                            buildGridRows GeoBodies.Values ScannedBodies.Values |> updateGrid this
+                    if not ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) then 
+                        currentSystem <- setCurrentSystem currentSystem jump.SystemAddress
+                        buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                                
 
                 | :? Location as location ->
                     currentSystem <- setCurrentSystem currentSystem location.SystemAddress
-                    buildGridRows GeoBodies.Values ScannedBodies.Values |> updateGrid this
+                    buildGridRows currentSystem ScannedBodies |> updateGrid this Core
 
                 | _ -> ()
 
         member this.LogMonitorStateChanged args =
             if LogMonitorStateChangedEventArgs.IsBatchRead args.NewState then
-                Core.ClearGrid(this, buildHeaderRow)
+                Core.ClearGrid(this, buildNullRow)
             elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
-                buildGridRows GeoBodies.Values ScannedBodies.Values |> updateGrid this
+                buildGridRows currentSystem ScannedBodies |> updateGrid this Core
 
         member this.get_Name () = "GeoPredictor"
         member this.get_Version () = version
