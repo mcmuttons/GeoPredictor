@@ -15,15 +15,18 @@ type ScannedBody = { Name:string; Materials:Material list; Volcanism:string; Tem
 type GeoRow = { Body:string; Count:string; Type:string; Volcanism:string; Temp:string }
 
 type Worker() =
+
+    // mutable
     let mutable (Core:IObservatoryCore) = null
     let mutable (UI:PluginUI) = null
+    let mutable (currentSystem:uint64) = 0UL
     let GeoBodies = new Dictionary<string, BodyDetail>() 
     let ScannedBodies = new Dictionary<string, ScannedBody>()
     let GridCollection = new ObservableCollection<obj>()
 
+    // immutable
     let geoSignalType = "$SAA_SignalType_Geological;"
-    let version = Assembly.GetCallingAssembly().GetName().Version.ToString()
-            
+    let version = Assembly.GetCallingAssembly().GetName().Version.ToString()         
    
     let buildGridRows (bodyDetails:BodyDetail seq) scannedBodies =
         bodyDetails
@@ -40,13 +43,17 @@ type Worker() =
 
     let buildHeaderRow = { Body = "GeoPredictor v" + version; Count = ""; Type = ""; Volcanism = ""; Temp = "" }
 
+    let setCurrentSystem oldSystem newSystem = 
+        match oldSystem = 0UL || oldSystem <> newSystem with
+            | true -> newSystem
+            | false -> oldSystem
+
     let updateGrid worker gridRows =
         match Core.IsLogMonitorBatchReading with
             | true -> ()
             | false ->
                 Core.ClearGrid(worker, buildHeaderRow)
                 Core.AddGridItems(worker, Seq.cast(gridRows))
- 
 
     interface IObservatoryWorker with 
         member this.Load core = 
@@ -55,7 +62,6 @@ type Worker() =
             GridCollection.Add(buildHeaderRow)
             UI <- PluginUI(GridCollection)
 
-
         member this.JournalEvent event =
             match (event:JournalBase) with 
                 | :? Scan as scan ->
@@ -63,7 +69,7 @@ type Worker() =
                         ScannedBodies.Add (
                             scan.BodyName,
                             { Name = scan.BodyName; Materials = List.empty; Volcanism = scan.Volcanism; Temp = scan.SurfaceTemperature })
-                    updateGrid this (buildGridRows GeoBodies.Values ScannedBodies.Values)
+                        updateGrid this (buildGridRows GeoBodies.Values ScannedBodies.Values)
 
                 | :? SAASignalsFound as signalsFound ->  
                     if not (GeoBodies.ContainsKey(signalsFound.BodyName)) then  
@@ -72,15 +78,29 @@ type Worker() =
                         |> Seq.iter (fun s ->
                             GeoBodies.Add (
                                 signalsFound.BodyName,
-                                { Name = signalsFound.BodyName; Count = s.Count; GeosFound = Map.empty} ))
+                                { Name = signalsFound.BodyName; 
+                                  Count = s.Count; 
+                                  GeosFound = Map.empty} ))
+                        updateGrid this (buildGridRows GeoBodies.Values ScannedBodies.Values)
+
+                | :? FSDJump as jump ->
+                    match ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) with
+                        | true -> ()
+                        | false -> 
+                            currentSystem <- setCurrentSystem currentSystem jump.SystemAddress
+                            updateGrid this (buildGridRows GeoBodies.Values ScannedBodies.Values)
+
+                | :? Location as location ->
+                    currentSystem <- setCurrentSystem currentSystem location.SystemAddress
                     updateGrid this (buildGridRows GeoBodies.Values ScannedBodies.Values)
 
                 | _ -> ()
 
         member this.LogMonitorStateChanged args =
-            match (LogMonitorStateChangedEventArgs.IsBatchRead args.NewState) with
-                | true -> ()
-                | false -> updateGrid this (buildGridRows GeoBodies.Values ScannedBodies.Values)
+            if LogMonitorStateChangedEventArgs.IsBatchRead args.NewState then
+                Core.ClearGrid(this, buildHeaderRow)
+            elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
+                updateGrid this (buildGridRows GeoBodies.Values ScannedBodies.Values)
 
         member this.get_Name () = "GeoPredictor"
         member this.get_Version () = version
