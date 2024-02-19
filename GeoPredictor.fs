@@ -10,7 +10,7 @@ type GeoDetail = { Type:string; Scanned:bool }
 type BodyDetail = { Name:string; Count:int; GeosFound:Map<string, GeoDetail> }
 type Material = { Name:string; Percent:float32}
 type ScannedBody = { Name:string; Volcanism:string; Temp:float32 }
-type BodyId = { BodyName:string; SystemAddress:uint64 }
+type BodyId = { BodyName:string; SystemAddress:uint64; BodyId:int }
 
 type GeoRow = { Body:string; Count:string; Type:string; Volcanism:string; Temp:string }
 
@@ -66,6 +66,7 @@ type Worker() =
             | "" -> false
             | _ -> true
 
+
     interface IObservatoryWorker with 
         member this.Load core = 
             Core <- core
@@ -79,7 +80,7 @@ type Worker() =
                     match scan.Landable && scan.Volcanism |> isNotNullOrEmpty with
                         | true -> 
                             ScannedBodies <- ScannedBodies.Add(
-                                { BodyName = scan.BodyName; SystemAddress = currentSystem },
+                                { BodyName = scan.BodyName; SystemAddress = currentSystem; BodyId = scan.BodyID },
                                 { Name = scan.BodyName; Volcanism = scan.Volcanism; Temp = scan.SurfaceTemperature })
                             buildGridRows currentSystem GeoBodies ScannedBodies |> updateGrid this Core
                         | false -> ()
@@ -89,7 +90,7 @@ type Worker() =
                     |> Seq.filter (fun s -> s.Type = geoSignalType)
                     |> Seq.iter (fun s ->
                         GeoBodies <- GeoBodies.Add (
-                            { BodyName = signalsFound.BodyName; SystemAddress = signalsFound.SystemAddress },
+                            { BodyName = signalsFound.BodyName; SystemAddress = signalsFound.SystemAddress; BodyId = signalsFound.BodyID },
                             { Name = signalsFound.BodyName; Count = s.Count; GeosFound = Map.empty} ))
                     buildGridRows currentSystem GeoBodies ScannedBodies |> updateGrid this Core
 
