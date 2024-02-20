@@ -107,14 +107,14 @@ type Worker() =
                 Type = "";
                 Volcanism = body.Volcanism;
                 Temp = (floor body.Temp).ToString() + "K" }
-        match body.GeosFound.IsEmpty with
+        match body.GeosFound |> List.isEmpty with
             | true -> [ firstRow ]
             | false ->
-                [firstRow] |> List.append
-                    (body.GeosFound
-                        |> List.map (fun d -> { Body = ""; Count = ""; Type = d.Type; Volcanism = ""; Temp = ""}))                               
+                (body.GeosFound
+                    |> List.map (fun d -> { Body = body.Name; Count = ""; Type = d.Type; Volcanism = ""; Temp = ""}))
+                    |> List.append [ firstRow ]
 
-    let buildGridRows currentSystem scannedBodies =
+    let buildGridEntries currentSystem scannedBodies =
         scannedBodies
         |> Map.filter (fun k _ -> k.SystemAddress = currentSystem)
         |> Seq.collect (fun body -> buildGridEntry body.Value) 
@@ -177,36 +177,33 @@ type Worker() =
                 | :? Scan as scan ->
                     match scan.Landable && scan.Volcanism |> isNotNullOrEmpty with
                         | true -> 
-                            let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
-                            ScannedBodies <- addBodyDetails id scan.BodyName scan.Volcanism scan.SurfaceTemperature ScannedBodies
-                            buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                            ScannedBodies <- addBodyDetails { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID } scan.BodyName scan.Volcanism scan.SurfaceTemperature ScannedBodies
+                            buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
                         | false -> ()
 
                 | :? SAASignalsFound as sigs ->  
                     sigs.Signals 
                     |> Seq.filter (fun s -> s.Type = geoSignalType)
                     |> Seq.iter (fun s ->
-                        let id = { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID }
-                        ScannedBodies <- addGeoDetails id sigs.BodyName s.Count ScannedBodies)
-                    buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                        ScannedBodies <- addGeoDetails { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID } sigs.BodyName s.Count ScannedBodies)
+                    buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
 
                 | :? CodexEntry as codexEntry ->
                     let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
                     match geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
                     | Some _ ->
-                        let id = { SystemAddress = codexEntry.SystemAddress; BodyId = codexEntry.BodyID }
-                        ScannedBodies <- addFoundDetails id codexEntry.Name_Localised ScannedBodies
-                        buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                        ScannedBodies <- addFoundDetails { SystemAddress = codexEntry.SystemAddress; BodyId = codexEntry.BodyID } codexEntry.Name_Localised ScannedBodies
+                        buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
                     | None -> ()
 
                 | :? FSDJump as jump ->
                     if not ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) then 
                         currentSystem <- setCurrentSystem currentSystem jump.SystemAddress
-                        buildGridRows currentSystem ScannedBodies |> updateGrid this Core               
+                        buildGridEntries currentSystem ScannedBodies |> updateGrid this Core               
 
                 | :? Location as location ->
                     currentSystem <- setCurrentSystem currentSystem location.SystemAddress
-                    buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                    buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
 
                 | _ -> ()
 
@@ -214,7 +211,7 @@ type Worker() =
             if LogMonitorStateChangedEventArgs.IsBatchRead args.NewState then
                 Core.ClearGrid(this, buildNullRow)
             elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
-                buildGridRows currentSystem ScannedBodies |> updateGrid this Core
+                buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
 
         member this.get_Name () = "GeoPredictor"
         member this.get_Version () = version
