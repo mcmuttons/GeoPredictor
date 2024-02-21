@@ -1,7 +1,18 @@
 # GeoPredictor Plugin for Observatory Core
 **Note:** This plugin requires [Observatory Core](https://github.com/Xjph/ObservatoryCore) to work, so if you don't have that, start there! :)
 
-GeoPredictor aims to make it easier to get an overview over geological signals on landable bodies. Going forward, it will also track which are in your codex or not and will aim to predict which kinds of geological signals you might find on a given body.
+GeoPredictor aims to make it easier to get an overview over geological signals on landable bodies. 
+
+Currently, it reports the following:
+- Bodies that have geological signals on them
+- The number of signals
+- What kind of volcanism the body has
+- The body's temperature
+- The specific geology signals found there, once you've comp. scanned them (i.e. flown down to the surface, targeted them with your ship or SRV and scanned)
+
+The goal is to have the plugin try to predict what kind of specific geology signs you might find on a body, and also tell you whether it will be a new Codex entry or not. 
+
+Howevever, even now, the info it displays is useful for geology hunters, so I hope you enjoy this early version, and then it should only improve from here. :)
 
 ## Installation
 - Download the newest release from this page.
