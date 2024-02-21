@@ -11,14 +11,21 @@ type ScannedBody = { Name:string; Volcanism:string; Temp:float32; Count:int; Geo
 type BodyId = { SystemAddress:uint64; BodyId:int }
 type GeoRow = { Body:string; Count:string; Type:string; Volcanism:string; Temp:string }
 
-type Settings () =
+type Settings() =
     let mutable onlyShowCurrentSystem = true
     let mutable onlyShowWithScans = false
+
+    let needsUIUpdate = new Event<_>()
+
+    member this.NeedsUIUpdate = needsUIUpdate.Publish
 
     [<SettingDisplayName("Show only current system  ")>]
     member this.OnlyShowCurrentSystem
         with get() = onlyShowCurrentSystem
-        and set(setting) = onlyShowCurrentSystem <- setting
+        and set(setting) = 
+            onlyShowCurrentSystem <- setting
+            needsUIUpdate.Trigger()
+
 
     [<SettingDisplayName("Show only bodies with scans  ")>]
     member this.OnlyShowWithScans
@@ -26,7 +33,7 @@ type Settings () =
         and set(setting) = onlyShowWithScans <- setting
 
 
-type Worker() =
+type Worker() as self =
 
     // mutable
     let mutable (Core:IObservatoryCore) = null
@@ -35,7 +42,7 @@ type Worker() =
     let mutable ScannedBodies = Map.empty
     let mutable GridCollection = ObservableCollection<obj>()
     let mutable isPluginLoaded = false   
-    let mutable Settings = Settings()
+    let mutable Settings = new Settings()
 
     // immutable
     let geoSignalType = "$SAA_SignalType_Geological;"
@@ -188,8 +195,8 @@ type Worker() =
             | Some geo -> bodies
             | None -> bodies.Add (id, { body with GeosFound = body.GeosFound |> List.append [{ Type = geotype }]})
         | None ->
-            bodies.Add (id, { Name = ""; Volcanism = ""; Temp = 0f; Count = 0; GeosFound = [{ Type = geotype }]})        
-
+            bodies.Add (id, { Name = ""; Volcanism = ""; Temp = 0f; Count = 0; GeosFound = [{ Type = geotype }]})   
+            
     interface IObservatoryWorker with 
         member this.Load core = 
             Core <- core
@@ -238,6 +245,7 @@ type Worker() =
             if LogMonitorStateChangedEventArgs.IsBatchRead args.NewState then
                 Core.ClearGrid(this, buildNullRow)
             elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
+                Settings.OnlyShowCurrentSystem <- false
                 ScannedBodies |> updateUI this Core Settings true currentSystem
 
         member this.Name with get() = "GeoPredictor"
@@ -246,5 +254,7 @@ type Worker() =
 
         member this.Settings 
             with get() = Settings
-            and set(settings) = Settings <- settings :?> Settings
+            and set(settings) = 
+                Settings <- settings :?> Settings
+                Settings.NeedsUIUpdate.Add(fun () -> ScannedBodies |> updateUI this Core Settings false currentSystem)
             
