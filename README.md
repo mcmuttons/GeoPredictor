@@ -25,7 +25,7 @@ This will only show bodies where at least one geological item has been scanned o
 Default: **off**
 
 ## Exporting data to help the developer :)
-The more data I have, the easier it is for me to analyze and figure out what determines which types of geology show up on a planet, in hopes of trying to predict it before you have to spend you precious time landing on a body only to realize it's yet another ice water geyser. :D So if you'd like to help with sending data, these are the steps:
+The more data I have, the easier it is for me to analyze and figure out what determines which types of geology show up on a planet, in hopes of trying to predict it before you have to spend your precious time landing on a body only to realize it's yet another ice water geyser. :D So if you'd like to help with sending data, these are the steps:
 
 1. Click `Core`
 2. In the `Export Options` tab, set the export style to `tab separated`, and choose a folder to save in
