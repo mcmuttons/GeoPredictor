@@ -15,7 +15,7 @@ You can find the settings in Observatory by selecting `Core` on the left side, a
 Note that `Read All` also adheres to these settings, so you might have to change them to see everything that has been read.
 
 ### Show only current system
-This will only show bodies with geology on the in the system you're in.
+This will only show bodies with geology on the in the system you're in. Otherwise you'll see all the bodies since this Observatory session started. 
 
 ### Show only bodies with scans
 This will only show bodies where at least one geological item has been scanned on the surface. This mostly used for exporting reports, but perhaps you'll find the view useful as well. :)
