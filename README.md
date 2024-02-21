@@ -17,8 +17,12 @@ Note that `Read All` also adheres to these settings, so you might have to change
 ### Show only current system
 This will only show bodies with geology on the in the system you're in. Otherwise you'll see all the bodies since this Observatory session started. 
 
+Default: **on**
+
 ### Show only bodies with scans
 This will only show bodies where at least one geological item has been scanned on the surface. This mostly used for exporting reports, but perhaps you'll find the view useful as well. :)
+
+Default: **off**
 
 ## Exporting data to help the developer :)
 The more data I have, the easier it is for me to analyze and figure out what determines which types of geology show up on a planet, in hopes of trying to predict it before you have to spend you precious time landing on a body only to realize it's yet another ice water geyser. :D So if you'd like to help with sending data, these are the steps:
