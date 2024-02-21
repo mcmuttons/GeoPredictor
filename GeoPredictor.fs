@@ -26,14 +26,15 @@ type Settings() =
             onlyShowCurrentSystem <- setting
             needsUIUpdate.Trigger()
 
-
     [<SettingDisplayName("Show only bodies with scans  ")>]
     member this.OnlyShowWithScans
         with get() = onlyShowWithScans
-        and set(setting) = onlyShowWithScans <- setting
+        and set(setting) = 
+            onlyShowWithScans <- setting
+            needsUIUpdate.Trigger()
 
 
-type Worker() as self =
+type Worker() =
 
     // mutable
     let mutable (Core:IObservatoryCore) = null
@@ -124,6 +125,32 @@ type Worker() as self =
 
     let version = Assembly.GetCallingAssembly().GetName().Version.ToString()         
    
+    let buildNullRow = { Body = null; Count = null; Type = null; Volcanism = null; Temp = null }
+    let buildHeaderRow = { Body = "GeoPredictor v" + version; Count = ""; Type = ""; Volcanism = ""; Temp = "" }
+
+    let setCurrentSystem oldSystem newSystem = 
+        match oldSystem = 0UL || oldSystem <> newSystem with
+            | true -> newSystem
+            | false -> oldSystem
+
+    let filterForOnlyShowWithScans onlyScans bodies =
+        match onlyScans with
+        | false -> bodies
+        | true -> bodies |> Map.filter(fun _ b -> not (b.GeosFound |> Seq.isEmpty ))
+
+    let filterForShowOnlyCurrentSys onlyCurrent currentSys bodies =
+        match onlyCurrent with
+        | false -> bodies
+        | true -> bodies |> Map.filter(fun id _ -> id.SystemAddress = currentSys)
+
+    let filterBodiesForOutput (settings:Settings) isBatch currentSys bodies =
+        match isBatch with
+        | true -> bodies
+        | false ->
+            bodies
+            |> filterForShowOnlyCurrentSys settings.OnlyShowCurrentSystem currentSys
+            |> filterForOnlyShowWithScans settings.OnlyShowWithScans
+
     let buildGridEntry body =   
         let firstRow = 
             { Body = body.Name;
@@ -138,14 +165,6 @@ type Worker() as self =
                     |> List.map (fun d -> { Body = body.Name; Count = ""; Type = d.Type; Volcanism = ""; Temp = ""}))
                     |> List.append [ firstRow ]
 
-    let buildNullRow = { Body = null; Count = null; Type = null; Volcanism = null; Temp = null }
-    let buildHeaderRow = { Body = "GeoPredictor v" + version; Count = ""; Type = ""; Volcanism = ""; Temp = "" }
-
-    let setCurrentSystem oldSystem newSystem = 
-        match oldSystem = 0UL || oldSystem <> newSystem with
-            | true -> newSystem
-            | false -> oldSystem
-
     let updateGrid worker (core:IObservatoryCore) gridRows =
         match core.IsLogMonitorBatchReading with
             | true -> ()
@@ -154,17 +173,9 @@ type Worker() as self =
                 core.AddGridItem(worker, buildHeaderRow)
                 core.AddGridItems(worker, Seq.cast(gridRows))
 
-    let filterForCurrentSysIfNecessary onlyCurrent isBatch currentSys bodies =
-        match isBatch with
-        | true -> bodies
-        | false ->
-            match onlyCurrent with
-            | false -> bodies
-            | true -> bodies |> Map.filter(fun k _ -> k.SystemAddress = currentSys)
-
     let updateUI worker core (settings:Settings) isBatch currentSys bodies = 
         bodies 
-        |> filterForCurrentSysIfNecessary settings.OnlyShowCurrentSystem isBatch currentSys
+        |> filterBodiesForOutput settings isBatch currentSys
         |> Seq.collect (fun body -> buildGridEntry body.Value)
         |> updateGrid worker core                            
 
