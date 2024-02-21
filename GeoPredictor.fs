@@ -143,13 +143,10 @@ type Worker() =
         | false -> bodies
         | true -> bodies |> Map.filter(fun id _ -> id.SystemAddress = currentSys)
 
-    let filterBodiesForOutput (settings:Settings) isBatch currentSys bodies =
-        match isBatch with
-        | true -> bodies
-        | false ->
-            bodies
-            |> filterForShowOnlyCurrentSys settings.OnlyShowCurrentSystem currentSys
-            |> filterForOnlyShowWithScans settings.OnlyShowWithScans
+    let filterBodiesForOutput (settings:Settings) currentSys bodies =
+        bodies
+        |> filterForShowOnlyCurrentSys settings.OnlyShowCurrentSystem currentSys
+        |> filterForOnlyShowWithScans settings.OnlyShowWithScans
 
     let buildGridEntry body =   
         let firstRow = 
@@ -173,9 +170,9 @@ type Worker() =
                 core.AddGridItem(worker, buildHeaderRow)
                 core.AddGridItems(worker, Seq.cast(gridRows))
 
-    let updateUI worker core (settings:Settings) isBatch currentSys bodies = 
+    let updateUI worker core (settings:Settings) currentSys bodies = 
         bodies 
-        |> filterBodiesForOutput settings isBatch currentSys
+        |> filterBodiesForOutput settings currentSys
         |> Seq.collect (fun body -> buildGridEntry body.Value)
         |> updateGrid worker core                            
 
@@ -223,7 +220,7 @@ type Worker() =
                     match scan.Landable && scan.Volcanism |> isNotNullOrEmpty with
                         | true -> 
                             ScannedBodies <- addBodyDetails { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID } scan.BodyName scan.Volcanism scan.SurfaceTemperature ScannedBodies
-                            ScannedBodies |> updateUI this Core Settings false currentSystem
+                            ScannedBodies |> updateUI this Core Settings currentSystem
                         | false -> ()
 
                 | :? SAASignalsFound as sigs ->  
@@ -231,24 +228,24 @@ type Worker() =
                     |> Seq.filter (fun s -> s.Type = geoSignalType)
                     |> Seq.iter (fun s ->
                         ScannedBodies <- addGeoDetails { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID } sigs.BodyName s.Count ScannedBodies)
-                    ScannedBodies |> updateUI this Core Settings false currentSystem
+                    ScannedBodies |> updateUI this Core Settings currentSystem
 
                 | :? CodexEntry as codexEntry ->
                     let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
                     match geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
                     | Some _ ->
                         ScannedBodies <- addFoundDetails { SystemAddress = codexEntry.SystemAddress; BodyId = codexEntry.BodyID } codexEntry.Name_Localised ScannedBodies
-                        ScannedBodies |> updateUI this Core Settings false currentSystem
+                        ScannedBodies |> updateUI this Core Settings currentSystem
                     | None -> ()
 
                 | :? FSDJump as jump ->
                     if not ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) then 
                         currentSystem <- setCurrentSystem currentSystem jump.SystemAddress
-                        ScannedBodies |> updateUI this Core Settings false currentSystem
+                        ScannedBodies |> updateUI this Core Settings currentSystem
 
                 | :? Location as location ->
                     currentSystem <- setCurrentSystem currentSystem location.SystemAddress
-                    ScannedBodies |> updateUI this Core Settings false currentSystem
+                    ScannedBodies |> updateUI this Core Settings currentSystem
 
                 | _ -> ()
 
@@ -257,7 +254,7 @@ type Worker() =
                 Core.ClearGrid(this, buildNullRow)
             elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
                 Settings.OnlyShowCurrentSystem <- false
-                ScannedBodies |> updateUI this Core Settings true currentSystem
+                ScannedBodies |> updateUI this Core Settings currentSystem
 
         member this.Name with get() = "GeoPredictor"
         member this.Version with get() = version
@@ -267,5 +264,5 @@ type Worker() =
             with get() = Settings
             and set(settings) = 
                 Settings <- settings :?> Settings
-                Settings.NeedsUIUpdate.Add(fun () -> ScannedBodies |> updateUI this Core Settings false currentSystem)
+                Settings.NeedsUIUpdate.Add(fun () -> ScannedBodies |> updateUI this Core Settings currentSystem)
             
