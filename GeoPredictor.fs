@@ -11,6 +11,21 @@ type ScannedBody = { Name:string; Volcanism:string; Temp:float32; Count:int; Geo
 type BodyId = { SystemAddress:uint64; BodyId:int }
 type GeoRow = { Body:string; Count:string; Type:string; Volcanism:string; Temp:string }
 
+type Settings () =
+    let mutable onlyShowCurrentSystem = true
+    let mutable onlyShowWithScans = false
+
+    [<SettingDisplayName("Show only current system  ")>]
+    member this.OnlyShowCurrentSystem
+        with get() = onlyShowCurrentSystem
+        and set(setting) = onlyShowCurrentSystem <- setting
+
+    [<SettingDisplayName("Show only bodies with scans  ")>]
+    member this.OnlyShowWithScans
+        with get() = onlyShowWithScans
+        and set(setting) = onlyShowWithScans <- setting
+
+
 type Worker() =
 
     // mutable
@@ -19,6 +34,8 @@ type Worker() =
     let mutable currentSystem = 0UL
     let mutable ScannedBodies = Map.empty
     let mutable GridCollection = ObservableCollection<obj>()
+    let mutable isPluginLoaded = false   
+    let mutable Settings = Settings()
 
     // immutable
     let geoSignalType = "$SAA_SignalType_Geological;"
@@ -114,11 +131,6 @@ type Worker() =
                     |> List.map (fun d -> { Body = body.Name; Count = ""; Type = d.Type; Volcanism = ""; Temp = ""}))
                     |> List.append [ firstRow ]
 
-    let buildGridEntries currentSystem scannedBodies =
-        scannedBodies
-        |> Map.filter (fun k _ -> k.SystemAddress = currentSystem)
-        |> Seq.collect (fun body -> buildGridEntry body.Value) 
-
     let buildNullRow = { Body = null; Count = null; Type = null; Volcanism = null; Temp = null }
     let buildHeaderRow = { Body = "GeoPredictor v" + version; Count = ""; Type = ""; Volcanism = ""; Temp = "" }
 
@@ -134,6 +146,20 @@ type Worker() =
                 core.ClearGrid(worker, buildNullRow)
                 core.AddGridItem(worker, buildHeaderRow)
                 core.AddGridItems(worker, Seq.cast(gridRows))
+
+    let filterForCurrentSysIfNecessary onlyCurrent isBatch currentSys bodies =
+        match isBatch with
+        | true -> bodies
+        | false ->
+            match onlyCurrent with
+            | false -> bodies
+            | true -> bodies |> Map.filter(fun k _ -> k.SystemAddress = currentSys)
+
+    let updateUI worker core (settings:Settings) isBatch currentSys bodies = 
+        bodies 
+        |> filterForCurrentSysIfNecessary settings.OnlyShowCurrentSystem isBatch currentSys
+        |> Seq.collect (fun body -> buildGridEntry body.Value)
+        |> updateGrid worker core                            
 
     let isNotNullOrEmpty string =
         match string with
@@ -162,8 +188,7 @@ type Worker() =
             | Some geo -> bodies
             | None -> bodies.Add (id, { body with GeosFound = body.GeosFound |> List.append [{ Type = geotype }]})
         | None ->
-            bodies.Add (id, { Name = ""; Volcanism = ""; Temp = 0f; Count = 0; GeosFound = [{ Type = geotype }]})
-
+            bodies.Add (id, { Name = ""; Volcanism = ""; Temp = 0f; Count = 0; GeosFound = [{ Type = geotype }]})        
 
     interface IObservatoryWorker with 
         member this.Load core = 
@@ -172,13 +197,15 @@ type Worker() =
             GridCollection.Add(buildNullRow)
             UI <- PluginUI(GridCollection)
 
+            isPluginLoaded <- true
+
         member this.JournalEvent event =
             match (event:JournalBase) with 
                 | :? Scan as scan ->
                     match scan.Landable && scan.Volcanism |> isNotNullOrEmpty with
                         | true -> 
                             ScannedBodies <- addBodyDetails { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID } scan.BodyName scan.Volcanism scan.SurfaceTemperature ScannedBodies
-                            buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
+                            ScannedBodies |> updateUI this Core Settings false currentSystem
                         | false -> ()
 
                 | :? SAASignalsFound as sigs ->  
@@ -186,24 +213,24 @@ type Worker() =
                     |> Seq.filter (fun s -> s.Type = geoSignalType)
                     |> Seq.iter (fun s ->
                         ScannedBodies <- addGeoDetails { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID } sigs.BodyName s.Count ScannedBodies)
-                    buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
+                    ScannedBodies |> updateUI this Core Settings false currentSystem
 
                 | :? CodexEntry as codexEntry ->
                     let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
                     match geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
                     | Some _ ->
                         ScannedBodies <- addFoundDetails { SystemAddress = codexEntry.SystemAddress; BodyId = codexEntry.BodyID } codexEntry.Name_Localised ScannedBodies
-                        buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
+                        ScannedBodies |> updateUI this Core Settings false currentSystem
                     | None -> ()
 
                 | :? FSDJump as jump ->
                     if not ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) then 
                         currentSystem <- setCurrentSystem currentSystem jump.SystemAddress
-                        buildGridEntries currentSystem ScannedBodies |> updateGrid this Core               
+                        ScannedBodies |> updateUI this Core Settings false currentSystem
 
                 | :? Location as location ->
                     currentSystem <- setCurrentSystem currentSystem location.SystemAddress
-                    buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
+                    ScannedBodies |> updateUI this Core Settings false currentSystem
 
                 | _ -> ()
 
@@ -211,11 +238,13 @@ type Worker() =
             if LogMonitorStateChangedEventArgs.IsBatchRead args.NewState then
                 Core.ClearGrid(this, buildNullRow)
             elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
-                buildGridEntries currentSystem ScannedBodies |> updateGrid this Core
+                ScannedBodies |> updateUI this Core Settings true currentSystem
 
-        member this.get_Name () = "GeoPredictor"
-        member this.get_Version () = version
-        member this.get_PluginUI () = UI
-        member this.get_Settings () = ()
-        member this.set_Settings settings = ()
+        member this.Name with get() = "GeoPredictor"
+        member this.Version with get() = version
+        member this.PluginUI with get() = UI
 
+        member this.Settings 
+            with get() = Settings
+            and set(settings) = Settings <- settings :?> Settings
+            
