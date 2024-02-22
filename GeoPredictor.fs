@@ -136,8 +136,6 @@ type Worker() =
         "$Codex_Ent_Geysers_SilicateVapourGeysers_Name;";
         "$Codex_Ent_Fumarole_SilicateVapourGeysers_Name;";
         "$Codex_Ent_Gas_Vents_SilicateVapourGeysers_Name;"]
-
-    let version = Assembly.GetCallingAssembly().GetName().Version.ToString()         
     
     // Null row for initializing the UI
     let buildNullRow = { Body = null; Count = null; Type = null; Volcanism = null; Temp = null }
@@ -229,7 +227,6 @@ type Worker() =
         | None ->
             bodies.Add (id, { Name = ""; Volcanism = ""; Temp = 0f; Count = 0; GeosFound = [{ Type = geotype }]})   
             
-
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
     // possible. 
@@ -297,7 +294,7 @@ type Worker() =
                 ScannedBodies |> updateUI this Core Settings currentSystem
 
         member this.Name with get() = "GeoPredictor"
-        member this.Version with get() = version
+        member this.Version with get() = Assembly.GetCallingAssembly().GetName().Version.ToString()
         member this.PluginUI with get() = UI
 
         member this.Settings 
