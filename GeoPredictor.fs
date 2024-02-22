@@ -164,7 +164,15 @@ type Worker() =
         |> filterForShowOnlyCurrentSys settings.OnlyShowCurrentSystem currentSys
         |> filterForOnlyShowWithScans settings.OnlyShowWithScans
 
-    // Build a grid entry for a body; if it has scans add those in separate grid lines underneath
+    // Build detail grid lines if there are geological scans
+    let buildGeoDetailEntries body =
+        match body.GeosFound |> List.isEmpty with
+            | true -> []
+            | false ->
+                (body.GeosFound
+                    |> List.map (fun d -> { Body = body.Name; Count = ""; Type = d.Type; Volcanism = ""; Temp = ""}))
+
+    // Build a grid entry for a body, with detail entries if applicable
     let buildGridEntry body =   
         let firstRow = 
             { Body = body.Name;
@@ -172,12 +180,9 @@ type Worker() =
                 Type = "";
                 Volcanism = body.Volcanism;
                 Temp = (floor body.Temp).ToString() + "K" }
-        match body.GeosFound |> List.isEmpty with
-            | true -> [ firstRow ]
-            | false ->
-                (body.GeosFound
-                    |> List.map (fun d -> { Body = body.Name; Count = ""; Type = d.Type; Volcanism = ""; Temp = ""}))
-                    |> List.append [ firstRow ]
+        body
+        |> buildGeoDetailEntries
+        |> List.append [firstRow]
 
     // Repaint the UI
     let updateGrid worker (core:IObservatoryCore) gridRows =
