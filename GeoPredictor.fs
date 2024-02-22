@@ -176,7 +176,10 @@ type Worker() =
     let buildGridEntry body =   
         let firstRow = {
             Body = body.Name;
-            Count = body.Count.ToString();
+            Count = 
+                match body.Count with 
+                | 0 -> "FSS or DSS for count" 
+                | _ -> body.Count.ToString();
             Type = "";
             Volcanism = body.Volcanism;
             Temp = (floor body.Temp).ToString() + "K" }
@@ -233,7 +236,7 @@ type Worker() =
     let formatGeoPlanetNotification volcanism temp count =
         match count <> 0 with
         | true -> $"Landable body with {count} geological signals, and {volcanism} at {floor temp}K."
-        | false -> $"Landable body with geological signals, and {volcanism} at {floor temp}K."
+        | false -> $"Landable body with geological signals, and {volcanism} at {floor temp}K. FSS or DSS for count."
 
     // Build a notification for found geological signals
     let buildGeoPlanetNotification volcanism temp count =
