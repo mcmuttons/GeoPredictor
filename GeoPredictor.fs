@@ -22,6 +22,7 @@ type UIOutputRow = { Body:string; Count:string; Type:string; Volcanism:string; T
 type Settings() =
     let mutable onlyShowCurrentSystem = true
     let mutable onlyShowWithScans = false
+    let mutable notifyOnGeoBody = true
 
     // Event that triggers for Settings that require UI updates when changed
     let needsUIUpdate = new Event<_>()
@@ -42,6 +43,12 @@ type Settings() =
         and set(setting) = 
             onlyShowWithScans <- setting
             needsUIUpdate.Trigger()
+
+    // Turn on and off notifications on found geological bodies
+    [<SettingDisplayName("Notify on new geological body  ")>]
+    member this.NotifyOnGeoBody
+        with get() = notifyOnGeoBody
+        and set(setting) = notifyOnGeoBody <- setting
 
 
 type Worker() =
@@ -266,7 +273,7 @@ type Worker() =
                             let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
                             let body = buildScannedBody id scan.BodyName scan.Volcanism scan.SurfaceTemperature GeoBodies
                             
-                            match body.Notified with
+                            match body.Notified || not Settings.NotifyOnGeoBody with
                             | true -> 
                                 GeoBodies <- GeoBodies.Add(id, body)
                             | false ->
