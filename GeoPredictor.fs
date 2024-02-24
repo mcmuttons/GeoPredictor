@@ -142,7 +142,7 @@ type Worker() =
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
     let buildScannedBody id name bodyType volcanism temp bodies =
         match bodies |> Map.tryFind(id) with
-        | Some body -> { body with Name = name; Volcanism = volcanism; Temp = temp }
+        | Some body -> { body with Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp }
         | None -> { Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = List.empty; Notified = false }
 
     // If a body already exists, update its count of geological signal, otherwise create a new body
