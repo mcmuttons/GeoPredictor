@@ -34,24 +34,31 @@ type BodyType =
     | NonLandable of string
     | BodyTypeNotYetSet
 
-type GeoFeature =
-    | IceGeyser
-    | IceFumarole
-    | Geyser
-    | Fumarole
-    | GasVent
-    | Lava
-
-type GeoType =
-    | Water 
-    | SulphurDioxide 
-    | Ammonia 
-    | Methane
-    | Nitrogen
-    | Silicate
-    | Iron
-    | CarbonDioxide
-    | SilicateVapour 
+type GeologySignal =
+    | WaterIceGeyserSignal
+    | WaterIceFumaroleSignal
+    | WaterGeyserSignal
+    | WaterFumaroleSignal
+    | WaterGasVentSignal
+    | SulphurDioxideIceFumaroleSignal
+    | SulphurDioxideFumaroleSignal
+    | SulphurDioxideGasVentSignal
+    | SilicateVapourIceFumaroleSignal
+    | SilicateVapourFumaroleSignal
+    | SilicateVapourGasVentSignal
+    | CarbonDioxideIceGeyserSignal
+    | CarbonDioxideIceFumaroleSignal
+    | CarbonDioxideFumaroleSignal
+    | CarbonDioxideGasVentSignal
+    | AmmoniaIceGeyserSignal
+    | AmmoniaIceFumaroleSignal
+    | NitrogenIceGeyserSignal
+    | NitrogenIceFumaroleSignal
+    | MethaneIceGeyserSignal
+    | MethaneIceFumaroleSignal
+    | IronMagmaLavaSpoutSignal
+    | SilicateMagmaLavaSpoutSignal
+    | UnexpectedVolcanismType of VolcanismType
 
 type Volcanism = { Level:VolcanismLevel; Type:VolcanismType }
 

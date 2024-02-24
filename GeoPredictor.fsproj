@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Compile Include="Parser.fs" />
+    <Compile Include="Predictor.fs" />
     <Compile Include="GeoPredictor.fs" />
   </ItemGroup>
 
