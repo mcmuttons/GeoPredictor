@@ -37,6 +37,27 @@ type Volcanism =
     | HeliumGeysers
     | SilicateVapourGeysers
 
+type BodyType =
+    | MetalRichBody
+    | HighMetalContentBody
+    | RockyBody
+    | IcyBody
+    | RockyIceBody
+    | EarthLikeBody
+    | WaterWorld
+    | AmmoniaWorld
+    | WaterGiant
+    | WaterGiantWithLife
+    | GasGiantWithWaterBasedLife
+    | GasGiantWithAmmoniaBasedLife
+    | SudarskyClassIGasGiant
+    | SudarskyClassIIGasGiant
+    | SudarskyClassIIIGasGiant
+    | SudarskyClassIVGasGiant
+    | SudarskyClassVGasGiant
+    | HeliumRichGasGiant
+    | HeliumGasGiant
+
 
 type Geology = { Type:GeoType; MeltingPoint:float32<K> }
 
