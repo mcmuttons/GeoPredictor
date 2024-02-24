@@ -63,10 +63,12 @@ type Worker() =
     let mutable Settings = new Settings()                       // Settings for Observatory
 
     // Immutable internal values
+    let externalVersion = "GeoPredictor v1.2"
     let geoSignalType = "$SAA_SignalType_Geological;"           // Journal value for a geological signal
     
     // Null row for initializing the UI
     let buildNullRow = { Body = null; BodyType = null; Count = null; Type = null; Volcanism = null; Temp = null }
+    let buildHeaderRow = { Body = externalVersion; BodyType = ""; Count = ""; Type = ""; Volcanism = ""; Temp = "" }
 
     // Update current system if it has changed
     let setCurrentSystem oldSystem newSystem = 
@@ -123,6 +125,7 @@ type Worker() =
             | true -> ()
             | false ->
                 core.ClearGrid(worker, buildNullRow)
+                core.AddGridItem(worker, buildHeaderRow)
                 core.AddGridItems(worker, Seq.cast(gridRows))
 
     // Filter bodies for display, turn them into a single list of entries, then update the UI
