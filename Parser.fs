@@ -18,6 +18,7 @@ type VolcanismType =
     | HeliumGeysers
     | SilicateVapourGeysers
     | UnknownVolcanism of string
+    | VolcanismNotYetSet
 
 type VolcanismLevel =
     | Minor
@@ -31,6 +32,7 @@ type BodyType =
     | IcyBody
     | RockyIceBody
     | NonLandable of string
+    | BodyTypeNotYetSet
 
 type GeoFeature =
     | IceGeyser
@@ -99,6 +101,7 @@ module Parser =
         | HeliumGeysers -> "Helium Geysers"
         | SilicateVapourGeysers -> "Silicate Vapour Geysers"
         | UnknownVolcanism v -> $"Unknown volcanism {v} (wat?)"
+        | VolcanismNotYetSet -> "Volcanism not set"
 
     let private toVolcanismLevel (volcanism:string) =
         match volcanism with
@@ -120,6 +123,9 @@ module Parser =
         |> replace " volcanism" ""
         |> buildVolcanism 
 
+    let toVolcanismNotYetSet =
+        { Level = Unspecified; Type = VolcanismNotYetSet }
+
     let toVolcanismOutput volcanism =
         toVolcanismLevelOutput volcanism.Level + toVolcanismTypeOutput volcanism.Type
 
@@ -136,11 +142,12 @@ module Parser =
     let toBodyTypeOutput bodyType =
         match bodyType with
         | MetalRichBody -> "Metal Rich"
-        | HighMetalContentBody -> "High Metal Content"
+        | HighMetalContentBody -> "HMC"
         | RockyBody -> "Rocky"
         | IcyBody -> "Icy"
         | RockyIceBody -> "Rocky Ice"
         | NonLandable bt -> $"Nonlandable {bt} (why am I here?)"
+        | BodyTypeNotYetSet -> "Type not set"
 
     // All possible permutations of the types of geology and volcanisms to match on codex scans. I'm pretty sure a lot of 
     // these combinations are invalid, and that especially some of the magmas don't occur at all on landable bodies, even 

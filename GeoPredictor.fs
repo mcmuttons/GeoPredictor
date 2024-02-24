@@ -11,7 +11,7 @@ open System.Reflection
 type GeoDetail = { Type:string }
 
 // A body with geology
-type GeoBody = { Name:string; BodyType:string; Volcanism:string; Temp:float32<K>; Count:int; GeosFound:List<GeoDetail>; Notified:bool }
+type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:List<GeoDetail>; Notified:bool }
 
 // A unique ID for a body
 type BodyId = { SystemAddress:uint64; BodyId:int }
@@ -104,13 +104,13 @@ type Worker() =
     let buildGridEntry body =   
         let firstRow = {
             Body = body.Name;
-            BodyType = body.BodyType;
+            BodyType = Parser.toBodyTypeOutput body.BodyType;
             Count = 
                 match body.Count with 
                 | 0 -> "FSS or DSS for count" 
                 | _ -> body.Count.ToString();
             Type = "";
-            Volcanism = body.Volcanism;
+            Volcanism = Parser.toVolcanismOutput body.Volcanism;
             Temp = (floor (float body.Temp)).ToString() + "K" }
 
         body
@@ -149,7 +149,7 @@ type Worker() =
     let buildSignalCountBody id name count bodies =
         match bodies |> Map.tryFind(id) with
         | Some body -> { (body:GeoBody) with Count = count }
-        | None -> { Name = name; BodyType = ""; Volcanism = ""; Temp = 0f<K>; Count = count; GeosFound = List.empty; Notified = false }             
+        | None -> { Name = name; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = count; GeosFound = List.empty; Notified = false }             
 
     // If a body already exists, and the type of geology has not already been scanned, add the geology; if no body, create a new one
     let buildFoundDetailBody id geotype bodies =
@@ -159,7 +159,7 @@ type Worker() =
             | Some geo -> body
             | None -> { body with GeosFound = body.GeosFound |> List.append [{ Type = geotype }]}
         | None ->
-            { Name = ""; BodyType = ""; Volcanism = ""; Temp = 0f<K>; Count = 0; GeosFound = [{ Type = geotype }]; Notified = false }
+            { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = [{ Type = geotype }]; Notified = false }
     
     // Format notification text for output
     let formatGeoPlanetNotification volcanism temp count =
@@ -193,7 +193,14 @@ type Worker() =
                     match scan.Landable && scan.Volcanism |> isNotNullOrEmpty with
                         | true -> 
                             let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
-                            let body = buildScannedBody id scan.BodyName scan.PlanetClass scan.Volcanism (scan.SurfaceTemperature * 1.0f<K>) GeoBodies
+                            let body = 
+                                buildScannedBody 
+                                    id 
+                                    scan.BodyName 
+                                    (Parser.toBodyType scan.PlanetClass) 
+                                    (Parser.toVolcanism scan.Volcanism) 
+                                    (scan.SurfaceTemperature * 1.0f<K>) 
+                                    GeoBodies
                             
                             match body.Notified || not Settings.NotifyOnGeoBody with
                             | true -> 
