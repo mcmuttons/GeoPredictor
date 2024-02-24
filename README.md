@@ -1,6 +1,8 @@
 # GeoPredictor Plugin for Observatory Core
 **Note:** This plugin requires [Observatory Core](https://github.com/Xjph/ObservatoryCore) to work, so if you don't have that, start there! :)
 
+[Direct download of GeoPredictor.eop](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.1/GeoPredictor.eop)
+
 GeoPredictor aims to make it easier to get an overview over geological signals on landable bodies. 
 
 Currently, it reports the following:
@@ -9,6 +11,8 @@ Currently, it reports the following:
 - What kind of volcanism the body has
 - The body's temperature
 - The specific geology signals found there, once you've comp. scanned them (i.e. flown down to the surface, targeted them with your ship or SRV and scanned)
+
+It also has the option to pop up a standard Observatory notification when a body with geological signals is scanned.
 
 The goal is to have the plugin try to predict what kind of specific geology signs you might find on a body, and also tell you whether it will be a new Codex entry or not. 
 
@@ -34,6 +38,11 @@ Default: **on**
 This will only show bodies where at least one geological item has been scanned on the surface. This mostly used for exporting reports, but perhaps you'll find the view useful as well. :)
 
 Default: **off**
+
+### Notify on new geological body
+This turns on and off whether a standard Observatory notification should be shown when a geological body is scanned.
+
+Default: **on**
 
 ## Exporting data to help the developer :)
 The more data I have, the easier it is for me to analyze and figure out what determines which types of geology show up on a planet, in hopes of trying to predict it before you have to spend your precious time landing on a body only to realize it's yet another ice water geyser. :D So if you'd like to help with sending data, these are the steps:
