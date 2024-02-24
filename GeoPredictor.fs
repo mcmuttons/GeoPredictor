@@ -1,5 +1,6 @@
 ﻿namespace GeoPredictor
 
+open FSharp.Data.UnitSystems.SI.UnitSymbols
 open Observatory.Framework
 open Observatory.Framework.Files.Journal
 open Observatory.Framework.Interfaces
@@ -10,7 +11,7 @@ open System.Reflection
 type GeoDetail = { Type:string }
 
 // A body with geology
-type GeoBody = { Name:string; Volcanism:string; Temp:float32; Count:int; GeosFound:List<GeoDetail>; Notified:bool }
+type GeoBody = { Name:string; Volcanism:string; Temp:float32<K>; Count:int; GeosFound:List<GeoDetail>; Notified:bool }
 
 // A unique ID for a body
 type BodyId = { SystemAddress:uint64; BodyId:int }
@@ -64,85 +65,6 @@ type Worker() =
     // Immutable internal values
     let geoSignalType = "$SAA_SignalType_Geological;"           // Journal value for a geological signal
 
-        // All possible permutations of the types of geology and volcanisms. I'm pretty sure a lot of these combinations are
-        // invalid, and that especially some of the magmas don't occur at all, even though they're theoretically listed
-        // as possibles, but this way none will slip through the cracks while checking, especially in case there's a permutation
-        // out there that hasn't been discovered yet.
-    let geoTypes = [
-        "$Codex_Ent_IceGeysers_WaterMagma_Name;";
-        "$Codex_Ent_IceFumarole_WaterMagma_Name;";
-        "$Codex_Ent_Geysers_WaterMagma_Name;";
-        "$Codex_Ent_Fumarole_WaterMagma_Name;";
-        "$Codex_Ent_Gas_Vents_WaterMagma_Name;";
-
-        "$Codex_Ent_IceGeysers_SulphurDioxideMagma_Name;";
-        "$Codex_Ent_IceFumarole_SulphurDioxideMagma_Name;";
-        "$Codex_Ent_Geysers_SulphurDioxideMagma_Name;";
-        "$Codex_Ent_Fumarole_SulphurDioxideMagma_Name;";
-        "$Codex_Ent_Gas_Vents_SulphurDioxideMagma_Name;";
-
-        "$Codex_Ent_IceGeysers_AmmoniaMagma_Name;";
-        "$Codex_Ent_IceFumarole_AmmoniaMagma_Name;";
-        "$Codex_Ent_Geysers_AmmoniaMagma_Name;";
-        "$Codex_Ent_Fumarole_AmmoniaMagma_Name;";
-        "$Codex_Ent_Gas_Vents_AmmoniaMagma_Name;";
-
-        "$Codex_Ent_IceGeysers_MethaneMagma_Name;";
-        "$Codex_Ent_IceFumarole_MethaneMagma_Name;";
-        "$Codex_Ent_Geysers_MethaneMagma_Name;";
-        "$Codex_Ent_Fumarole_MethaneMagma_Name;";
-        "$Codex_Ent_Gas_Vents_MethaneMagma_Name;";
-
-        "$Codex_Ent_IceGeysers_NitrogenMagma_Name;";
-        "$Codex_Ent_IceFumarole_NitrogenMagma_Name;";
-        "$Codex_Ent_Geysers_NitrogenMagma_Name;";
-        "$Codex_Ent_Fumarole_NitrogenMagma_Name;";
-        "$Codex_Ent_Gas_Vents_NitrogenMagma_Name;";
-
-        "$Codex_Ent_Lava_Spouts_SilicateMagma_Name;";
-        "$Codex_Ent_Lava_Spouts_IronMagma_Name;";
-
-        "$Codex_Ent_IceGeysers_WaterGeysers_Name;";
-        "$Codex_Ent_IceFumarole_WaterGeysers_Name;";
-        "$Codex_Ent_Geysers_WaterGeysers_Name;";
-        "$Codex_Ent_Fumarole_WaterGeysers_Name;";
-        "$Codex_Ent_Gas_Vents_WaterGeysers_Name;";
- 
-        "$Codex_Ent_IceGeysers_CarbonDioxideGeysers_Name;";
-        "$Codex_Ent_IceFumarole_CarbonDioxideGeysers_Name;";
-        "$Codex_Ent_Geysers_CarbonDioxideGeysers_Name;";
-        "$Codex_Ent_Fumarole_CarbonDioxideGeysers_Name;";
-        "$Codex_Ent_Gas_Vents_CarbonDioxideGeysers_Name;";
-
-        "$Codex_Ent_IceGeysers_AmmoniaGeysers_Name;";
-        "$Codex_Ent_IceFumarole_AmmoniaGeysers_Name;";
-        "$Codex_Ent_Geysers_AmmoniaGeysers_Name;";
-        "$Codex_Ent_Fumarole_AmmoniaGeysers_Name;";
-        "$Codex_Ent_Gas_Vents_AmmoniaGeysers_Name;";
-
-        "$Codex_Ent_IceGeysers_MethaneGeysers_Name;";
-        "$Codex_Ent_IceFumarole_MethaneGeysers_Name;";
-        "$Codex_Ent_Geysers_MethaneGeysers_Name;";
-        "$Codex_Ent_Fumarole_MethaneGeysers_Name;";
-        "$Codex_Ent_Gas_Vents_MethaneGeysers_Name;";
-
-        "$Codex_Ent_IceGeysers_NitrogenGeysers_Name;";
-        "$Codex_Ent_IceFumarole_NitrogenGeysers_Name;";
-        "$Codex_Ent_Geysers_NitrogenGeysers_Name;";
-        "$Codex_Ent_Fumarole_NitrogenGeysers_Name;";
-        "$Codex_Ent_Gas_Vents_NitrogenGeysers_Name;";
-
-        "$Codex_Ent_IceGeysers_HeliumGeysers_Name;";
-        "$Codex_Ent_IceFumarole_HeliumGeysers_Name;";
-        "$Codex_Ent_Geysers_HeliumGeysers_Name;";
-        "$Codex_Ent_Fumarole_HeliumGeysers_Name;";
-        "$Codex_Ent_Gas_Vents_HeliumGeysers_Name;";
-
-        "$Codex_Ent_IceGeysers_SilicateVapourGeysers_Name;";
-        "$Codex_Ent_IceFumarole_SilicateVapourGeysers_Name;";
-        "$Codex_Ent_Geysers_SilicateVapourGeysers_Name;";
-        "$Codex_Ent_Fumarole_SilicateVapourGeysers_Name;";
-        "$Codex_Ent_Gas_Vents_SilicateVapourGeysers_Name;"]
     
     // Null row for initializing the UI
     let buildNullRow = { Body = null; Count = null; Type = null; Volcanism = null; Temp = null }
@@ -189,7 +111,7 @@ type Worker() =
                 | _ -> body.Count.ToString();
             Type = "";
             Volcanism = body.Volcanism;
-            Temp = (floor body.Temp).ToString() + "K" }
+            Temp = (floor (float body.Temp)).ToString() + "K" }
 
         body
         |> buildGeoDetailEntries
@@ -227,7 +149,7 @@ type Worker() =
     let buildSignalCountBody id name count bodies =
         match bodies |> Map.tryFind(id) with
         | Some body -> { (body:GeoBody) with Count = count }
-        | None -> { Name = name; Volcanism = ""; Temp = 0f; Count = count; GeosFound = List.empty; Notified = false }             
+        | None -> { Name = name; Volcanism = ""; Temp = 0f<K>; Count = count; GeosFound = List.empty; Notified = false }             
 
     // If a body already exists, and the type of geology has not already been scanned, add the geology; if no body, create a new one
     let buildFoundDetailBody id geotype bodies =
@@ -237,13 +159,13 @@ type Worker() =
             | Some geo -> body
             | None -> { body with GeosFound = body.GeosFound |> List.append [{ Type = geotype }]}
         | None ->
-            { Name = ""; Volcanism = ""; Temp = 0f; Count = 0; GeosFound = [{ Type = geotype }]; Notified = false }
+            { Name = ""; Volcanism = ""; Temp = 0f<K>; Count = 0; GeosFound = [{ Type = geotype }]; Notified = false }
     
     // Format notification text for output
     let formatGeoPlanetNotification volcanism temp count =
         match count <> 0 with
-        | true -> $"Landable body with {count} geological signals, and {volcanism} at {floor temp}K."
-        | false -> $"Landable body with geological signals, and {volcanism} at {floor temp}K. FSS or DSS for count."
+        | true -> $"Landable body with {count} geological signals, and {volcanism} at {floor (float temp)}K."
+        | false -> $"Landable body with geological signals, and {volcanism} at {floor (float temp)}K. FSS or DSS for count."
 
     // Build a notification for found geological signals
     let buildGeoPlanetNotification volcanism temp count =
@@ -271,7 +193,7 @@ type Worker() =
                     match scan.Landable && scan.Volcanism |> isNotNullOrEmpty with
                         | true -> 
                             let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
-                            let body = buildScannedBody id scan.BodyName scan.Volcanism scan.SurfaceTemperature GeoBodies
+                            let body = buildScannedBody id scan.BodyName scan.Volcanism (scan.SurfaceTemperature * 1.0f<K>) GeoBodies
                             
                             match body.Notified || not Settings.NotifyOnGeoBody with
                             | true -> 
@@ -306,7 +228,7 @@ type Worker() =
                 | :? CodexEntry as codexEntry ->
                     // When something is scanned with the comp. scanner, save/update the result if it's geological, then update the UI
                     let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
-                    match geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
+                    match Types.geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
                     | Some _ -> 
                         let id = { SystemAddress = codexEntry.SystemAddress; BodyId = codexEntry.BodyID }
                         GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id codexEntry.Name_Localised GeoBodies)
