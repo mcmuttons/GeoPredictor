@@ -11,13 +11,13 @@ open System.Reflection
 type GeoDetail = { Type:string }
 
 // A body with geology
-type GeoBody = { Name:string; Volcanism:string; Temp:float32<K>; Count:int; GeosFound:List<GeoDetail>; Notified:bool }
+type GeoBody = { Name:string; BodyType:string; Volcanism:string; Temp:float32<K>; Count:int; GeosFound:List<GeoDetail>; Notified:bool }
 
 // A unique ID for a body
 type BodyId = { SystemAddress:uint64; BodyId:int }
 
 // An row of data to be displayed in the UI
-type UIOutputRow = { Body:string; Count:string; Type:string; Volcanism:string; Temp:string }
+type UIOutputRow = { Body:string; BodyType: string; Count:string; Type:string; Volcanism:string; Temp:string }
 
 // Public settings for Observatory
 type Settings() =
@@ -64,10 +64,9 @@ type Worker() =
 
     // Immutable internal values
     let geoSignalType = "$SAA_SignalType_Geological;"           // Journal value for a geological signal
-
     
     // Null row for initializing the UI
-    let buildNullRow = { Body = null; Count = null; Type = null; Volcanism = null; Temp = null }
+    let buildNullRow = { Body = null; BodyType = null; Count = null; Type = null; Volcanism = null; Temp = null }
 
     // Update current system if it has changed
     let setCurrentSystem oldSystem newSystem = 
@@ -99,12 +98,13 @@ type Worker() =
             | true -> []
             | false ->
                 (body.GeosFound
-                    |> List.map (fun d -> { Body = body.Name; Count = ""; Type = d.Type; Volcanism = ""; Temp = ""}))
+                    |> List.map (fun d -> { Body = body.Name; BodyType = ""; Count = ""; Type = d.Type; Volcanism = ""; Temp = ""}))
 
     // Build a grid entry for a body, with detail entries if applicable
     let buildGridEntry body =   
         let firstRow = {
             Body = body.Name;
+            BodyType = body.BodyType;
             Count = 
                 match body.Count with 
                 | 0 -> "FSS or DSS for count" 
@@ -140,16 +140,16 @@ type Worker() =
             | _ -> true
 
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
-    let buildScannedBody id name volcanism temp bodies =
+    let buildScannedBody id name bodyType volcanism temp bodies =
         match bodies |> Map.tryFind(id) with
         | Some body -> { body with Name = name; Volcanism = volcanism; Temp = temp }
-        | None -> { Name = name; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = List.empty; Notified = false }
+        | None -> { Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = List.empty; Notified = false }
 
     // If a body already exists, update its count of geological signal, otherwise create a new body
     let buildSignalCountBody id name count bodies =
         match bodies |> Map.tryFind(id) with
         | Some body -> { (body:GeoBody) with Count = count }
-        | None -> { Name = name; Volcanism = ""; Temp = 0f<K>; Count = count; GeosFound = List.empty; Notified = false }             
+        | None -> { Name = name; BodyType = ""; Volcanism = ""; Temp = 0f<K>; Count = count; GeosFound = List.empty; Notified = false }             
 
     // If a body already exists, and the type of geology has not already been scanned, add the geology; if no body, create a new one
     let buildFoundDetailBody id geotype bodies =
@@ -159,7 +159,7 @@ type Worker() =
             | Some geo -> body
             | None -> { body with GeosFound = body.GeosFound |> List.append [{ Type = geotype }]}
         | None ->
-            { Name = ""; Volcanism = ""; Temp = 0f<K>; Count = 0; GeosFound = [{ Type = geotype }]; Notified = false }
+            { Name = ""; BodyType = ""; Volcanism = ""; Temp = 0f<K>; Count = 0; GeosFound = [{ Type = geotype }]; Notified = false }
     
     // Format notification text for output
     let formatGeoPlanetNotification volcanism temp count =
@@ -193,7 +193,7 @@ type Worker() =
                     match scan.Landable && scan.Volcanism |> isNotNullOrEmpty with
                         | true -> 
                             let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
-                            let body = buildScannedBody id scan.BodyName scan.Volcanism (scan.SurfaceTemperature * 1.0f<K>) GeoBodies
+                            let body = buildScannedBody id scan.BodyName scan.PlanetClass scan.Volcanism (scan.SurfaceTemperature * 1.0f<K>) GeoBodies
                             
                             match body.Notified || not Settings.NotifyOnGeoBody with
                             | true -> 
