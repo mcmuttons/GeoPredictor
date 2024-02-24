@@ -228,7 +228,7 @@ type Worker() =
                 | :? CodexEntry as codexEntry ->
                     // When something is scanned with the comp. scanner, save/update the result if it's geological, then update the UI
                     let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
-                    match Types.geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
+                    match Parser.geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
                     | Some _ -> 
                         let id = { SystemAddress = codexEntry.SystemAddress; BodyId = codexEntry.BodyID }
                         GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id codexEntry.Name_Localised GeoBodies)
