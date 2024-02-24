@@ -8,7 +8,7 @@ open System.Collections.ObjectModel
 open System.Reflection
 
 // Detailed info about a geology scan; currently just a string, but I anticipate more elements and the type gives it purpose
-type GeoDetail = { Type:string }
+type GeoDetail = { Type:GeologySignal }
 
 // A body with geology
 type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:List<GeoDetail>; Notified:bool }
@@ -100,7 +100,7 @@ type Worker() =
             | true -> []
             | false ->
                 (body.GeosFound
-                    |> List.map (fun d -> { Body = body.Name; BodyType = ""; Count = ""; Type = d.Type; Volcanism = ""; Temp = ""}))
+                    |> List.map (fun d -> { Body = body.Name; BodyType = ""; Count = ""; Type = (Parser.toGeoSignalOutput d.Type); Volcanism = ""; Temp = ""}))
 
     // Build a grid entry for a body, with detail entries if applicable
     let buildGridEntry body =   
@@ -241,7 +241,7 @@ type Worker() =
                     match Parser.geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
                     | Some _ -> 
                         let id = { SystemAddress = codexEntry.SystemAddress; BodyId = codexEntry.BodyID }
-                        GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id codexEntry.Name_Localised GeoBodies)
+                        GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id (Parser.toGeoSignal codexEntry.Name) GeoBodies)
                         GeoBodies |> updateUI this Core Settings currentSystem
                     | None -> ()
 
