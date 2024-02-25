@@ -8,10 +8,10 @@ open System.Collections.ObjectModel
 open System.Reflection
 
 // Detailed info about a geology scan; currently just a string, but I anticipate more elements and the type gives it purpose
-type GeoDetail = { Type:GeologySignal }
+type SignalDetail = { Predicted:bool; Matched: bool }
 
 // A body with geology
-type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:List<GeologySignal>; Notified:bool }
+type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:Map<GeologySignal,SignalDetail>; Notified:bool }
 
 // A unique ID for a body
 type BodyId = { SystemAddress:uint64; BodyId:int }
@@ -96,11 +96,12 @@ type Worker() =
 
     // Build detail grid lines if there are geological scans
     let buildGeoDetailEntries body =
-        match body.GeosFound |> List.isEmpty with
+        match body.GeosFound |> Map.isEmpty with
             | true -> []
             | false ->
                 (body.GeosFound
-                    |> List.map (fun d -> { Body = body.Name; BodyType = ""; Count = ""; Type = (Parser.toGeoSignalOutput d); Volcanism = ""; Temp = ""}))
+                    |> Map.toList
+                    |> List.map (fun (s,d) -> { Body = body.Name; BodyType = ""; Count = ""; Type = Parser.toGeoSignalOutput s; Volcanism = ""; Temp = ""}))
 
     // Build a grid entry for a body, with detail entries if applicable
     let buildGridEntry body =   
@@ -137,7 +138,11 @@ type Worker() =
 
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
     let buildScannedBody id name bodyType volcanism temp bodies =
-        let predictedGeos = Predictor.getGeologyPredictions bodyType volcanism
+        let predictedGeos = 
+            Predictor.getGeologyPredictions bodyType volcanism
+            |> List.map (fun p -> p, { Predicted = true; Matched = false })
+            |> Map.ofList   
+
         match bodies |> Map.tryFind(id) with
         | Some body -> { body with Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp ; GeosFound = if body.GeosFound.IsEmpty then predictedGeos else body.GeosFound }
         | None -> { Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = predictedGeos; Notified = false }
@@ -146,17 +151,17 @@ type Worker() =
     let buildSignalCountBody id name count bodies =
         match bodies |> Map.tryFind(id) with
         | Some body -> { (body:GeoBody) with Count = count }
-        | None -> { Name = name; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = count; GeosFound = List.empty; Notified = false }             
+        | None -> { Name = name; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = count; GeosFound = Map.empty; Notified = false }             
 
     // If a body already exists, and the type of geology has not already been scanned, add the geology; if no body, create a new one
-    let buildFoundDetailBody id geotype bodies =
+    let buildFoundDetailBody id signal bodies =
         match bodies |> Map.tryFind(id) with
         | Some body ->
-            match body.GeosFound |> List.tryFind(fun g -> g = geotype) with
+            match body.GeosFound |> Map.tryFind(signal) with
             | Some geo -> body
-            | None -> { body with GeosFound = body.GeosFound |> List.append [ geotype ]}
+            | None -> { body with GeosFound = body.GeosFound |> Map.add signal { Predicted = false; Matched = false } }
         | None ->
-            { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = [ geotype ]; Notified = false }
+            { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = Map.empty |> Map.add signal { Predicted = false; Matched = false }; Notified = false }
     
     // Format notification text for output
     let formatGeoPlanetNotification volcanism temp count =

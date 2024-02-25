@@ -1,7 +1,5 @@
 ﻿namespace GeoPredictor
 
-open FSharp.Data.UnitSystems.SI.UnitSymbols
-
 type VolcanismType =
     | WaterMagma
     | SulphurDioxideMagma
