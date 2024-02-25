@@ -28,9 +28,11 @@ type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyT
 
 // Public settings for Observatory
 type Settings() =
+    let mutable notifyOnGeoBody = true
     let mutable onlyShowCurrentSystem = true
     let mutable onlyShowWithScans = false
-    let mutable notifyOnGeoBody = true
+    let mutable onlyShowFailedPredictionBodies = false
+
 
     // Event that triggers for Settings that require UI updates when changed
     let needsUIUpdate = new Event<_>()
@@ -58,7 +60,13 @@ type Settings() =
             onlyShowWithScans <- setting
             needsUIUpdate.Trigger()
 
-
+    // Only show data for bodies where prediction failed; requires UI update
+    [<SettingDisplayName("Show only bodies with failed prediction  ")>]
+    member this.OnlyShowFailedPredictionBodies
+        with get() = onlyShowFailedPredictionBodies
+        and set(setting) =
+            onlyShowFailedPredictionBodies <- setting
+            needsUIUpdate.Trigger()
 
 
 
@@ -88,9 +96,9 @@ type Worker() =
         match oldSystem = 0UL || oldSystem <> newSystem with
             | true -> newSystem
             | false -> oldSystem
-    
+
     // Filter bodies to those with registered comp. scans
-    let filterForOnlyShowWithScans onlyScans bodies =
+    let filterForShowOnlyWithScans onlyScans bodies =
         match onlyScans with
         | false -> bodies
         | true -> bodies |> Map.filter(fun _ b -> b.GeosFound |> Map.values |> Seq.contains Matched || b.GeosFound |> Map.values |> Seq.contains Surprise)
@@ -101,11 +109,18 @@ type Worker() =
         | false -> bodies
         | true -> bodies |> Map.filter(fun id _ -> id.SystemAddress = currentSys)
 
+    // Filter bodies to only those with failed predictions
+    let filterForShowOnlyFailedPredictions onlyFailed bodies =
+        match onlyFailed with
+        | false -> bodies
+        | true -> bodies |> Map.filter(fun _ b -> b.GeosFound |> Map.values |> Seq.contains Surprise)
+
     // Filter the bodies down to what should be shown in the UI
     let filterBodiesForOutput (settings:Settings) currentSys bodies =
         bodies
         |> filterForShowOnlyCurrentSys settings.OnlyShowCurrentSystem currentSys
-        |> filterForOnlyShowWithScans settings.OnlyShowWithScans
+        |> filterForShowOnlyWithScans settings.OnlyShowWithScans
+        |> filterForShowOnlyFailedPredictions settings.OnlyShowFailedPredictionBodies
 
     // Build detail grid lines if there are geological scans
     let buildGeoDetailEntries body =
