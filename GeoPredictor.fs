@@ -17,7 +17,7 @@ type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float
 type BodyId = { SystemAddress:uint64; BodyId:int }
 
 // An row of data to be displayed in the UI
-type UIOutputRow = { Body:string; BodyType: string; Count:string; Type:string; Volcanism:string; Temp:string }
+type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyType: string; Volcanism:string; Temp:string }
 
 // Public settings for Observatory
 type Settings() =
@@ -65,10 +65,12 @@ type Worker() =
     // Immutable internal values
     let externalVersion = "GeoPredictor v1.2"
     let geoSignalType = "$SAA_SignalType_Geological;"           // Journal value for a geological signal
-    
+    let predictionSuccess = "\u2714"                            // Heavy check mark
+    let predictionUnknown = "\u2753"                            // Question mark
+
     // Null row for initializing the UI
-    let buildNullRow = { Body = null; BodyType = null; Count = null; Type = null; Volcanism = null; Temp = null }
-    let buildHeaderRow = { Body = externalVersion; BodyType = ""; Count = ""; Type = ""; Volcanism = ""; Temp = "" }
+    let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Volcanism = null; Temp = null }
+    let buildHeaderRow = { Body = externalVersion; Count = ""; Found = ""; Type = ""; BodyType = ""; Volcanism = ""; Temp = "" }
 
     // Update current system if it has changed
     let setCurrentSystem oldSystem newSystem = 
@@ -98,10 +100,17 @@ type Worker() =
     let buildGeoDetailEntries body =
         match body.GeosFound |> Map.isEmpty with
             | true -> []
-            | false ->
-                (body.GeosFound
+            | false -> (
+                body.GeosFound
                     |> Map.toList
-                    |> List.map (fun (s,d) -> { Body = body.Name; BodyType = ""; Count = ""; Type = Parser.toGeoSignalOutput s; Volcanism = ""; Temp = ""}))
+                    |> List.map (fun (s,d) -> 
+                        {   Body = body.Name; 
+                            BodyType = ""; 
+                            Count = ""; 
+                            Found = if d.Matched then predictionSuccess elif d.Predicted then predictionUnknown else ""; 
+                            Type = Parser.toGeoSignalOutput s; 
+                            Volcanism = ""; 
+                            Temp = ""}))
 
     // Build a grid entry for a body, with detail entries if applicable
     let buildGridEntry body =   
@@ -112,6 +121,7 @@ type Worker() =
                 match body.Count with 
                 | 0 -> "FSS or DSS for count" 
                 | _ -> body.Count.ToString();
+            Found = ""
             Type = "";
             Volcanism = Parser.toVolcanismOutput body.Volcanism;
             Temp = (floor (float body.Temp)).ToString() + "K" }
@@ -158,7 +168,10 @@ type Worker() =
         match bodies |> Map.tryFind(id) with
         | Some body ->
             match body.GeosFound |> Map.tryFind(signal) with
-            | Some geo -> body
+            | Some geo -> 
+                match geo.Predicted with
+                | true -> { body with GeosFound = body.GeosFound |> Map.add signal { geo with Matched = true } }
+                | false -> body
             | None -> { body with GeosFound = body.GeosFound |> Map.add signal { Predicted = false; Matched = false } }
         | None ->
             { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = Map.empty |> Map.add signal { Predicted = false; Matched = false }; Notified = false }
