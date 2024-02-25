@@ -1,7 +1,7 @@
 # GeoPredictor Plugin for Observatory Core
 **Note:** This plugin requires [Observatory Core](https://github.com/Xjph/ObservatoryCore) to work, so if you don't have that, start there! :)
 
-[Direct download of GeoPredictor.eop](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.2/GeoPredictor.eop)
+[Direct download of GeoPredictor.eop](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.3/GeoPredictor.eop)
 
 GeoPredictor aims to make it easier to get an overview over geological signals on landable bodies. 
 
