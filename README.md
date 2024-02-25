@@ -1,23 +1,20 @@
-# GeoPredictor Plugin for Observatory Core
+# GeoPredictor Plugin for Observatory Core v1.3
 **Note:** This plugin requires [Observatory Core](https://github.com/Xjph/ObservatoryCore) to work, so if you don't have that, start there! :)
 
-[Direct download of GeoPredictor.eop](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.2/GeoPredictor.eop)
+[Direct download of GeoPredictor.eop](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.3/GeoPredictor.eop)
 
-GeoPredictor aims to make it easier to get an overview over geological signals on landable bodies. 
-
-Currently, it reports the following:
-- Bodies that have geological signals on them
-- The kind of body
-- The number of signals
-- What kind of volcanism the body has
-- The body's temperature
-- The specific geology signals found there, once you've comp. scanned them (i.e. flown down to the surface, targeted them with your ship or SRV and scanned)
+GeoPredictor aims to make it easier to get an overview over geological signals on landable bodies. It attempts to predict which geological features you will find on the surface, so that you'll know what to expect. 
 
 It also has the option to pop up a standard Observatory notification when a body with geological signals is scanned.
 
-The goal is to have the plugin try to predict what kind of specific geology signs you might find on a body, and also tell you whether it will be a new Codex entry or not. 
+## Understanding the data
+Here is a sample entry for the system **Phae Aeb ZG-U c16-10**, where body **D 2** has some geology, and the results in the Found column tell you the status of each.
 
-Howevever, even now, the info it displays is useful for geology hunters, so I hope you enjoy this early version, and then it should only improve from here. :)
+![image](https://github.com/mcmuttons/GeoPredictor/assets/668213/3882b92a-1f44-4304-9b2e-fa7d3438a599)
+
+- The Sulphur Dioxide Fumaroles (with the check mark) have been both predicted and found for this body. This is perfect!
+- The Silicate Vapour Gas Vents (with the red X) have not been predicted, but found anyway. Oh no!
+- The Sulphur Dioxide Gas Vents (with the question mark) have been predicted for this body, but not found. Since there are only 2 geological signals, according to the Count column, most likely this isn't here, since we found an unexpected geological signal to take its place. However, it's worth a look around, since there are instances where Elite reports the wrong number, even though it's rare.
 
 ## Installation
 - Download the newest release from this page.
@@ -30,6 +27,11 @@ You can find the settings in Observatory by selecting `Core` on the left side, a
 
 Note that `Read All` also adheres to these settings, so you might have to change them to see everything that has been read.
 
+### Notify on new geological body
+This turns on and off whether a standard Observatory notification should be shown when a geological body is scanned.
+
+Default: **on**
+
 ### Show only current system
 This will only show bodies with geology on the in the system you're in. Otherwise you'll see all the bodies since this Observatory session started. 
 
@@ -40,17 +42,18 @@ This will only show bodies where at least one geological item has been scanned o
 
 Default: **off**
 
-### Notify on new geological body
-This turns on and off whether a standard Observatory notification should be shown when a geological body is scanned.
+### Show only bodies with failed prediction
+This will only show bodies where GeoPredictor has found something it didn't predict. 
 
-Default: **on**
+Default: **off**
 
-## Exporting data to help the developer :)
-The more data I have, the easier it is for me to analyze and figure out what determines which types of geology show up on a planet, in hopes of trying to predict it before you have to spend your precious time landing on a body only to realize it's yet another ice water geyser. :D So if you'd like to help with sending data, these are the steps:
+## Helping the developer :)
+Should you come across an unexpected entry (red X), then you could help me quite a lot by letting me know. There are a few ways to do get the data:
+- Go to the settings, filter on `Show only bodies with failed prediction`, then export the data with the Export button. The file will end up in the folder specified in the `Export Options`.
+- Take a screenshot of the Observatory window or part of it, with the all the information for that body visible
+- Just note down the details (including the body type, volcanism and temp)
 
-1. Click `Core`
-2. In the `Export Options` tab, set the export style to `tab separated`, and choose a folder to save in
-3. In the `GeoPredictor` tab, set `Show only current system` to **off** and `Show only bodies with scans` to **on**
-4. Click `Read All`. If you have a lot of data (and most of us do :) then this can take as long as several minutes, where Observatory seems unresponsive. Wait it out, and once you can interact again (you'll probably see the `Read All` button change color slightly), then click on `Export`.
-5. Observatory will create one file for every plugin in the folder you chose in step 2, and one of them will have the name GeoPredictor in it (the names are built from date and some other data).
-6. Find me on Discord (user: mcmuttons) or just create an `Issue` here at github with the file included to get it to me. Thank you!
+You can either track me down on Discord (mcmuttons) -- I often hang out both on the Observatory and Stellar Cartography Guild Disocord servers, or you can just start in Issue here on my github page and put the info there.
+
+Thank you!!
+
