@@ -58,7 +58,7 @@ type GeologySignal =
     | MethaneIceFumaroleSignal
     | IronMagmaLavaSpoutSignal
     | SilicateMagmaLavaSpoutSignal
-    | UnexpectedVolcanismType of VolcanismType
+    | UnexpectedValue of string
 
 type Volcanism = { Level:VolcanismLevel; Type:VolcanismType }
 
@@ -107,7 +107,7 @@ module Parser =
         | NitrogenGeysers -> "Nitrogen Geysers"
         | HeliumGeysers -> "Helium Geysers"
         | SilicateVapourGeysers -> "Silicate Vapour Geysers"
-        | UnknownVolcanism v -> $"Unknown volcanism {v} (wat?)"
+        | UnknownVolcanism v -> $"Unknown volcanism: {v}"
         | VolcanismNotYetSet -> "Volcanism not set"
 
     let private toVolcanismLevel (volcanism:string) =
@@ -182,7 +182,7 @@ module Parser =
         | MethaneIceFumaroleSignal -> "Methane Ice Fumaroles"
         | IronMagmaLavaSpoutSignal -> "Iron Magma Lava Spouts"
         | SilicateMagmaLavaSpoutSignal -> "Silicate Magma Lava Spouts"
-        | UnexpectedVolcanismType vt -> $"Found {vt} and didn't expect it!"
+        | UnexpectedValue vt -> $"Found {vt} and didn't expect it!"
 
     let toGeoSignal signal =
         match signal with 
@@ -192,29 +192,18 @@ module Parser =
         | "$Codex_Ent_Fumarole_WaterMagma_Name;" -> WaterFumaroleSignal
         | "$Codex_Ent_Gas_Vents_WaterMagma_Name;" -> WaterGasVentSignal
 
-        | "$Codex_Ent_IceGeysers_SulphurDioxideMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Sulphur Dioxide Ice Geysers")
         | "$Codex_Ent_IceFumarole_SulphurDioxideMagma_Name;" -> SulphurDioxideIceFumaroleSignal
-        | "$Codex_Ent_Geysers_SulphurDioxideMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Sulphur Dioxide Geysers")
         | "$Codex_Ent_Fumarole_SulphurDioxideMagma_Name;" -> SulphurDioxideFumaroleSignal
         | "$Codex_Ent_Gas_Vents_SulphurDioxideMagma_Name;" -> SulphurDioxideGasVentSignal
         
         | "$Codex_Ent_IceGeysers_AmmoniaMagma_Name;" -> AmmoniaIceGeyserSignal
         | "$Codex_Ent_IceFumarole_AmmoniaMagma_Name;" -> AmmoniaIceFumaroleSignal
-        | "$Codex_Ent_Geysers_AmmoniaMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Ammonia Geysers")
-        | "$Codex_Ent_Fumarole_AmmoniaMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Ammonia Fumarole")
-        | "$Codex_Ent_Gas_Vents_AmmoniaMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Ammonia Gas Vents")
         
         | "$Codex_Ent_IceGeysers_MethaneMagma_Name;" -> MethaneIceGeyserSignal
         | "$Codex_Ent_IceFumarole_MethaneMagma_Name;" -> MethaneIceFumaroleSignal
-        | "$Codex_Ent_Geysers_MethaneMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Methane Geysers")
-        | "$Codex_Ent_Fumarole_MethaneMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Methane Fumaroles")
-        | "$Codex_Ent_Gas_Vents_MethaneMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Methane Gas Vents")
         
         | "$Codex_Ent_IceGeysers_NitrogenMagma_Name;" -> NitrogenIceGeyserSignal
         | "$Codex_Ent_IceFumarole_NitrogenMagma_Name;" -> NitrogenIceGeyserSignal
-        | "$Codex_Ent_Geysers_NitrogenMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Nitrogen Geysers")
-        | "$Codex_Ent_Fumarole_NitrogenMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Nitrogen Fumaroles")
-        | "$Codex_Ent_Gas_Vents_NitrogenMagma_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Nitrogen Gas Vents")
         
         | "$Codex_Ent_Lava_Spouts_SilicateMagma_Name;" -> SilicateMagmaLavaSpoutSignal
         | "$Codex_Ent_Lava_Spouts_IronMagma_Name;" -> IronMagmaLavaSpoutSignal
@@ -227,40 +216,23 @@ module Parser =
         
         | "$Codex_Ent_IceGeysers_CarbonDioxideGeysers_Name;" -> CarbonDioxideIceGeyserSignal
         | "$Codex_Ent_IceFumarole_CarbonDioxideGeysers_Name;" -> CarbonDioxideIceFumaroleSignal
-        | "$Codex_Ent_Geysers_CarbonDioxideGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Carbon Dioxide Geysers")
         | "$Codex_Ent_Fumarole_CarbonDioxideGeysers_Name;" -> CarbonDioxideFumaroleSignal
         | "$Codex_Ent_Gas_Vents_CarbonDioxideGeysers_Name;" -> CarbonDioxideGasVentSignal
         
         | "$Codex_Ent_IceGeysers_AmmoniaGeysers_Name;" -> AmmoniaIceGeyserSignal
         | "$Codex_Ent_IceFumarole_AmmoniaGeysers_Name;" -> AmmoniaIceFumaroleSignal
-        | "$Codex_Ent_Geysers_AmmoniaGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Ammonia Geysers")
-        | "$Codex_Ent_Fumarole_AmmoniaGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Ammonia Fumaroles")
-        | "$Codex_Ent_Gas_Vents_AmmoniaGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Ammonia Gas Vents")
         
         | "$Codex_Ent_IceGeysers_MethaneGeysers_Name;" -> MethaneIceGeyserSignal
         | "$Codex_Ent_IceFumarole_MethaneGeysers_Name;" -> MethaneIceFumaroleSignal
-        | "$Codex_Ent_Geysers_MethaneGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Methan Geysers")
-        | "$Codex_Ent_Fumarole_MethaneGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Methane Fumaroles")
-        | "$Codex_Ent_Gas_Vents_MethaneGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Methane Gas Vents")
         
         | "$Codex_Ent_IceGeysers_NitrogenGeysers_Name;" -> NitrogenIceGeyserSignal
         | "$Codex_Ent_IceFumarole_NitrogenGeysers_Name;" -> NitrogenIceFumaroleSignal
-        | "$Codex_Ent_Geysers_NitrogenGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Nitrogen Geysers")
-        | "$Codex_Ent_Fumarole_NitrogenGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Nitrogen Fumaroles")
-        | "$Codex_Ent_Gas_Vents_NitrogenGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Nitrogen Gas Vents")
-        
-        | "$Codex_Ent_IceGeysers_HeliumGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Helium Ice Geysers")
-        | "$Codex_Ent_IceFumarole_HeliumGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Helium Ice Fumaroles")
-        | "$Codex_Ent_Geysers_HeliumGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Helium Geysers")
-        | "$Codex_Ent_Fumarole_HeliumGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Helium Fumaroles")
-        | "$Codex_Ent_Gas_Vents_HeliumGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Helium Gas Vents")
-        
-        | "$Codex_Ent_IceGeysers_SilicateVapourGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected: Silicate Vapour Ice Geysers")
+               
         | "$Codex_Ent_IceFumarole_SilicateVapourGeysers_Name;" -> SilicateVapourIceFumaroleSignal
-        | "$Codex_Ent_Geysers_SilicateVapourGeysers_Name;" -> UnexpectedVolcanismType (UnknownVolcanism "Unexpected Silicate Vapour Geysers")
         | "$Codex_Ent_Fumarole_SilicateVapourGeysers_Name;" -> SilicateVapourFumaroleSignal
         | "$Codex_Ent_Gas_Vents_SilicateVapourGeysers_Name;" -> SilicateVapourGasVentSignal
-        | _ -> UnexpectedVolcanismType (UnknownVolcanism "Totally unexpected volcanism!")
+
+        | _ -> UnexpectedValue $"Unexpected geology scan: {signal}"
 
 
 

@@ -9,20 +9,20 @@ module Predictor =
             | IronMagma -> [ SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal ]
             | SilicateMagma -> [ SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal ]
             | SilicateVapourGeysers -> [ SilicateVapourFumaroleSignal; SilicateVapourGasVentSignal ]
-            | _ -> [ UnexpectedVolcanismType volcanism.Type ]
+            | _ -> [ UnexpectedValue $"Unexpected volcanism: {Parser.toVolcanismOutput volcanism}" ]
         | HighMetalContentBody ->
             match volcanism.Type with
             | IronMagma -> [ SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal; IronMagmaLavaSpoutSignal ]
             | SilicateMagma -> [ SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal; SilicateMagmaLavaSpoutSignal ]
             | SilicateVapourGeysers -> [ SilicateVapourFumaroleSignal; SilicateVapourGasVentSignal; SilicateMagmaLavaSpoutSignal ]
-            | _ -> [ UnexpectedVolcanismType volcanism.Type ]
+            | _ -> [ UnexpectedValue $"Unexpected volcanism: {Parser.toVolcanismOutput volcanism}" ]
         | RockyBody ->
             match (volcanism.Level, volcanism.Type) with
             | _, IronMagma -> [ SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal; IronMagmaLavaSpoutSignal ]
             | _, SilicateVapourGeysers -> [ SilicateVapourFumaroleSignal; SilicateVapourGasVentSignal; SilicateMagmaLavaSpoutSignal ]
             | Minor, SilicateMagma -> [ SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal; SilicateMagmaLavaSpoutSignal ]
             | Minor, WaterMagma -> [ WaterGeyserSignal; WaterFumaroleSignal; WaterGasVentSignal ]
-            | _ -> [ UnexpectedVolcanismType volcanism.Type ]
+            | _ -> [ UnexpectedValue $"Unexpected volcanism: {Parser.toVolcanismOutput volcanism}" ]
         | RockyIceBody ->
             match (volcanism.Level, volcanism.Type) with
             | Unspecified, IronMagma -> [ SulphurDioxideIceFumaroleSignal; IronMagmaLavaSpoutSignal ]
@@ -39,7 +39,7 @@ module Predictor =
             | Unspecified, WaterGeysers -> [ WaterIceFumaroleSignal; WaterGasVentSignal; WaterIceGeyserSignal ]
             | Minor, WaterGeysers -> [ WaterIceFumaroleSignal; WaterFumaroleSignal; WaterGasVentSignal ]
             | Minor, CarbonDioxideGeysers -> [ CarbonDioxideIceGeyserSignal; CarbonDioxideIceFumaroleSignal; CarbonDioxideFumaroleSignal; CarbonDioxideGasVentSignal ]
-            | _ -> [ UnexpectedVolcanismType volcanism.Type ]
+            | _ -> [ UnexpectedValue $"Unexpected volcanism: {Parser.toVolcanismOutput volcanism}" ]
         | IcyBody ->
             match (volcanism.Level, volcanism.Type) with
             | _, WaterGeysers -> [ WaterIceGeyserSignal; WaterIceFumaroleSignal ]
@@ -48,8 +48,8 @@ module Predictor =
             | Minor, AmmoniaMagma -> [ AmmoniaIceGeyserSignal; AmmoniaIceFumaroleSignal ]
             | Minor, NitrogenMagma -> [ NitrogenIceGeyserSignal; NitrogenIceFumaroleSignal ]
             | Minor, MethaneMagma -> [ MethaneIceGeyserSignal; MethaneIceFumaroleSignal ]
-            | _ -> [ UnexpectedVolcanismType volcanism.Type ]
+            | _ -> [ UnexpectedValue $"Unexpected volcanism: {Parser.toVolcanismOutput volcanism}" ]
         | NonLandable bt ->
-            [ UnexpectedVolcanismType (UnknownVolcanism $"Nonlandable {bt}!? How did you get here?") ]
+            [ UnexpectedValue $"Nonlandable {bt}!? How did you get here?" ]
         | BodyTypeNotYetSet ->
-            [ UnexpectedVolcanismType (UnknownVolcanism "This body type was never set!")]
+            [ UnexpectedValue "Body type not set!" ]
