@@ -48,7 +48,12 @@ This will only show bodies where GeoPredictor has found something it didn't pred
 Default: **off**
 
 ## Helping the developer :)
-Should you come across an unexpected entry (red X), then you could help me quite a lot by either noting down all the details (including the body type, volcanism and temp), or just sending me a screenshot of the entry, including the body info. You can either track me down on Discord (mcmuttons) -- I often hang out both on the Observatory and Stellar Cartography Guild Disocord servers, or you can just start in Issue here on my github page and put the info there.
+Should you come across an unexpected entry (red X), then you could help me quite a lot by letting me know. There are a few ways to do get the data:
+- Go to the settings, filter on `Show only bodies with failed prediction`, then export the data with the Export button. The file will end up in the folder specified in the `Export Options`.
+- Take a screenshot of the Observatory window or part of it, with the all the information for that body visible
+- Just note down the details (including the body type, volcanism and temp)
+
+You can either track me down on Discord (mcmuttons) -- I often hang out both on the Observatory and Stellar Cartography Guild Disocord servers, or you can just start in Issue here on my github page and put the info there.
 
 Thank you!!
 
