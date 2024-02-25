@@ -69,6 +69,13 @@ module Parser =
 
     let split (string:string) =
         string.Split ' '
+
+    let isNotNullOrEmpty string =
+        match string with
+            | null -> false
+            | "" -> false
+            | _ -> true
+
     
     // Input parsing
 

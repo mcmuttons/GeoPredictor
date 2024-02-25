@@ -135,13 +135,6 @@ type Worker() =
         |> Seq.collect (fun body -> buildGridEntry body.Value)
         |> updateGrid worker core                            
 
-    // Check if a string has content
-    let isNotNullOrEmpty string =
-        match string with
-            | null -> false
-            | "" -> false
-            | _ -> true
-
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
     let buildScannedBody id name bodyType volcanism temp bodies =
         let predictedGeos = Predictor.getGeologyPredictions bodyType volcanism
@@ -194,7 +187,7 @@ type Worker() =
             match (event:JournalBase) with 
                 | :? Scan as scan ->                
                     // When a body is scanned (FSS, Proximity or NAV beacon), save/update it if it's landable and has volcanism and update the UI
-                    match scan.Landable && scan.Volcanism |> isNotNullOrEmpty with
+                    match scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty with
                         | true -> 
                             let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
                             let body = 
