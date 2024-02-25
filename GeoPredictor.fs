@@ -81,7 +81,7 @@ type Worker() =
     let mutable Settings = new Settings()                       // Settings for Observatory
 
     // Immutable internal values
-    let externalVersion = "GeoPredictor v1.2"
+    let externalVersion = "GeoPredictor v1.3"
     let geoSignalType = "$SAA_SignalType_Geological;"           // Journal value for a geological signal
     let predictionSuccess = "\u2714"                            // Heavy check mark
     let predictionUnknown = "\u2754"                            // White question mark
