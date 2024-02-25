@@ -80,7 +80,7 @@ module Parser =
         | v when v.Contains("ammonia magma") -> AmmoniaMagma
         | v when v.Contains("methane magma") -> MethaneMagma
         | v when v.Contains("nitrogen magma") -> NitrogenMagma
-        | v when v.Contains("silicate magma") -> SilicateMagma
+        | v when v.Contains("rocky magma") -> SilicateMagma
         | v when v.Contains("metallic magma") -> IronMagma
         | v when v.Contains("water geysers") -> WaterGeysers
         | v when v.Contains("carbon dioxide geysers") -> CarbonDioxideGeysers

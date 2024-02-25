@@ -11,7 +11,7 @@ open System.Reflection
 type GeoDetail = { Type:GeologySignal }
 
 // A body with geology
-type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:List<GeoDetail>; Notified:bool }
+type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:List<GeologySignal>; Notified:bool }
 
 // A unique ID for a body
 type BodyId = { SystemAddress:uint64; BodyId:int }
@@ -100,7 +100,7 @@ type Worker() =
             | true -> []
             | false ->
                 (body.GeosFound
-                    |> List.map (fun d -> { Body = body.Name; BodyType = ""; Count = ""; Type = (Parser.toGeoSignalOutput d.Type); Volcanism = ""; Temp = ""}))
+                    |> List.map (fun d -> { Body = body.Name; BodyType = ""; Count = ""; Type = (Parser.toGeoSignalOutput d); Volcanism = ""; Temp = ""}))
 
     // Build a grid entry for a body, with detail entries if applicable
     let buildGridEntry body =   
@@ -144,9 +144,10 @@ type Worker() =
 
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
     let buildScannedBody id name bodyType volcanism temp bodies =
+        let predictedGeos = Predictor.getGeologyPredictions bodyType volcanism
         match bodies |> Map.tryFind(id) with
-        | Some body -> { body with Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp }
-        | None -> { Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = List.empty; Notified = false }
+        | Some body -> { body with Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp ; GeosFound = if body.GeosFound.IsEmpty then predictedGeos else body.GeosFound }
+        | None -> { Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = predictedGeos; Notified = false }
 
     // If a body already exists, update its count of geological signal, otherwise create a new body
     let buildSignalCountBody id name count bodies =
@@ -158,11 +159,11 @@ type Worker() =
     let buildFoundDetailBody id geotype bodies =
         match bodies |> Map.tryFind(id) with
         | Some body ->
-            match body.GeosFound |> List.tryFind(fun g -> g.Type = geotype) with
+            match body.GeosFound |> List.tryFind(fun g -> g = geotype) with
             | Some geo -> body
-            | None -> { body with GeosFound = body.GeosFound |> List.append [{ Type = geotype }]}
+            | None -> { body with GeosFound = body.GeosFound |> List.append [ geotype ]}
         | None ->
-            { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = [{ Type = geotype }]; Notified = false }
+            { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = [ geotype ]; Notified = false }
     
     // Format notification text for output
     let formatGeoPlanetNotification volcanism temp count =
