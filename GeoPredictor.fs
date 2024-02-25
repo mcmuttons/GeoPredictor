@@ -7,11 +7,18 @@ open Observatory.Framework.Interfaces
 open System.Collections.ObjectModel
 open System.Reflection
 
+// Has this geo been predicted, matched, or come as a complete surprise?
+type PredictionStatus =
+    | Predicted
+    | Matched
+    | Surprise
+    | Unmatched
+
 // Detailed info about a geology scan; currently just a string, but I anticipate more elements and the type gives it purpose
 type SignalDetail = { Predicted:bool; Matched: bool }
 
 // A body with geology
-type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:Map<GeologySignal,SignalDetail>; Notified:bool }
+type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:Map<GeologySignal,PredictionStatus>; Notified:bool }
 
 // A unique ID for a body
 type BodyId = { SystemAddress:uint64; BodyId:int }
@@ -29,6 +36,12 @@ type Settings() =
     let needsUIUpdate = new Event<_>()
     member this.NeedsUIUpdate = needsUIUpdate.Publish
 
+    // Turn on and off notifications on found geological bodies
+    [<SettingDisplayName("Notify on new geological body  ")>]
+    member this.NotifyOnGeoBody
+        with get() = notifyOnGeoBody
+        and set(setting) = notifyOnGeoBody <- setting
+
     // Only show data for the current system; requires UI update
     [<SettingDisplayName("Show only current system  ")>]
     member this.OnlyShowCurrentSystem
@@ -45,11 +58,8 @@ type Settings() =
             onlyShowWithScans <- setting
             needsUIUpdate.Trigger()
 
-    // Turn on and off notifications on found geological bodies
-    [<SettingDisplayName("Notify on new geological body  ")>]
-    member this.NotifyOnGeoBody
-        with get() = notifyOnGeoBody
-        and set(setting) = notifyOnGeoBody <- setting
+
+
 
 
 type Worker() =
@@ -66,7 +76,8 @@ type Worker() =
     let externalVersion = "GeoPredictor v1.2"
     let geoSignalType = "$SAA_SignalType_Geological;"           // Journal value for a geological signal
     let predictionSuccess = "\u2714"                            // Heavy check mark
-    let predictionUnknown = "\u2753"                            // Question mark
+    let predictionUnknown = "\u2754"                            // White question mark
+    let predictionFailed = "\u274C"                             // Red X
 
     // Null row for initializing the UI
     let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Volcanism = null; Temp = null }
@@ -82,7 +93,7 @@ type Worker() =
     let filterForOnlyShowWithScans onlyScans bodies =
         match onlyScans with
         | false -> bodies
-        | true -> bodies |> Map.filter(fun _ b -> not (b.GeosFound |> Seq.isEmpty ))
+        | true -> bodies |> Map.filter(fun _ b -> b.GeosFound |> Map.values |> Seq.contains Matched || b.GeosFound |> Map.values |> Seq.contains Surprise)
 
     // Filter bodies to those in current system
     let filterForShowOnlyCurrentSys onlyCurrent currentSys bodies =
@@ -107,7 +118,7 @@ type Worker() =
                         {   Body = body.Name; 
                             BodyType = ""; 
                             Count = ""; 
-                            Found = if d.Matched then predictionSuccess elif d.Predicted then predictionUnknown else ""; 
+                            Found = match d with | Matched -> predictionSuccess | Predicted -> predictionUnknown | Unmatched -> "" | Surprise -> predictionFailed                             
                             Type = Parser.toGeoSignalOutput s; 
                             Volcanism = ""; 
                             Temp = ""}))
@@ -119,7 +130,7 @@ type Worker() =
             BodyType = Parser.toBodyTypeOutput body.BodyType;
             Count = 
                 match body.Count with 
-                | 0 -> "FSS or DSS for count" 
+                | 0 -> "FSS/DSS" 
                 | _ -> body.Count.ToString();
             Found = ""
             Type = "";
@@ -150,7 +161,7 @@ type Worker() =
     let buildScannedBody id name bodyType volcanism temp bodies =
         let predictedGeos = 
             Predictor.getGeologyPredictions bodyType volcanism
-            |> List.map (fun p -> p, { Predicted = true; Matched = false })
+            |> List.map (fun p -> p, Predicted)
             |> Map.ofList   
 
         match bodies |> Map.tryFind(id) with
@@ -169,18 +180,19 @@ type Worker() =
         | Some body ->
             match body.GeosFound |> Map.tryFind(signal) with
             | Some geo -> 
-                match geo.Predicted with
-                | true -> { body with GeosFound = body.GeosFound |> Map.add signal { geo with Matched = true } }
-                | false -> body
-            | None -> { body with GeosFound = body.GeosFound |> Map.add signal { Predicted = false; Matched = false } }
+                match geo with
+                | Predicted -> { body with GeosFound = body.GeosFound |> Map.add signal Matched }
+                | _ -> body
+            | None -> { body with GeosFound = body.GeosFound |> Map.add signal Surprise }
         | None ->
-            { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = Map.empty |> Map.add signal { Predicted = false; Matched = false }; Notified = false }
+            { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = Map.empty |> Map.add signal Unmatched; Notified = false }
     
     // Format notification text for output
     let formatGeoPlanetNotification volcanism temp count =
+        let volcanismLowerCase = (Parser.toVolcanismOutput volcanism).ToLower()
         match count <> 0 with
-        | true -> $"Landable body with {count} geological signals, and {volcanism} at {floor (float temp)}K."
-        | false -> $"Landable body with geological signals, and {volcanism} at {floor (float temp)}K. FSS or DSS for count."
+        | true -> $"Landable body with {count} geological signals, and {volcanismLowerCase} at {floor (float temp)}K."
+        | false -> $"Landable body with geological signals, and {volcanismLowerCase} at {floor (float temp)}K. FSS or DSS for count."
 
     // Build a notification for found geological signals
     let buildGeoPlanetNotification volcanism temp count =
