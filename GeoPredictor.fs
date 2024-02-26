@@ -29,6 +29,7 @@ type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyT
 // Public settings for Observatory
 type Settings() =
     let mutable notifyOnGeoBody = true
+    let mutable verboseNotifications = true
     let mutable onlyShowCurrentSystem = true
     let mutable onlyShowWithScans = false
     let mutable onlyShowFailedPredictionBodies = false
@@ -43,6 +44,12 @@ type Settings() =
     member this.NotifyOnGeoBody
         with get() = notifyOnGeoBody
         and set(setting) = notifyOnGeoBody <- setting
+
+    // Verbose notifications
+    [<SettingDisplayName("Verbose notifications  ")>]
+    member this.VerboseNotifications
+        with get() = verboseNotifications
+        and set(setting) = verboseNotifications <- setting
 
     // Only show data for the current system; requires UI update
     [<SettingDisplayName("Show only current system  ")>]
@@ -203,17 +210,19 @@ type Worker() =
             { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = Map.empty |> Map.add signal Unmatched; Notified = false }
     
     // Format notification text for output
-    let formatGeoPlanetNotification volcanism temp count =
+    let formatGeoPlanetNotification verbose volcanism temp count =
         let volcanismLowerCase = (Parser.toVolcanismOutput volcanism).ToLower()
-        match count <> 0 with
-        | true -> $"Landable body with {count} geological signals, and {volcanismLowerCase} at {floor (float temp)}K."
-        | false -> $"Landable body with geological signals, and {volcanismLowerCase} at {floor (float temp)}K. FSS or DSS for count."
+        match (count <> 0, verbose) with
+        | true, true -> $"Landable body with {count} geological signals, and {volcanismLowerCase} at {floor (float temp)}K."
+        | true, false -> $"{count} geological signals found"
+        | false, true -> $"Landable body with geological signals, and {volcanismLowerCase} at {floor (float temp)}K. FSS or DSS for count."
+        | false, false -> "Geological signals found"
 
     // Build a notification for found geological signals
-    let buildGeoPlanetNotification volcanism temp count =
+    let buildGeoPlanetNotification verbose volcanism temp count =
         NotificationArgs (
             Title = "Geological signals",
-            Detail = formatGeoPlanetNotification volcanism temp count)
+            Detail = formatGeoPlanetNotification verbose volcanism temp count)
             
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
@@ -248,7 +257,7 @@ type Worker() =
                             | true -> 
                                 GeoBodies <- GeoBodies.Add(id, body)
                             | false ->
-                                Core.SendNotification(buildGeoPlanetNotification body.Volcanism body.Temp body.Count) |> ignore
+                                Core.SendNotification(buildGeoPlanetNotification Settings.VerboseNotifications body.Volcanism body.Temp body.Count) |> ignore
                                 GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
 
                             GeoBodies |> updateUI this Core Settings currentSystem
