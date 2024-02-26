@@ -82,7 +82,7 @@ type Worker() =
     // Mutable values for interop
     let mutable (Core:IObservatoryCore) = null                  // For interacting with Observatory Core
     let mutable (UI:PluginUI) = null                            // For updating the Observatory UI
-    let mutable currentSystem = 0UL                             // ID of the system we're currently in
+    let mutable CurrentSystem = 0UL                             // ID of the system we're currently in
     let mutable GeoBodies = Map.empty                           // List of all scanned bodies since the Observatory session began
     let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
     let mutable Settings = new Settings()                       // Settings for Observatory
@@ -260,7 +260,7 @@ type Worker() =
                                 Core.SendNotification(buildGeoPlanetNotification Settings.VerboseNotifications body.Volcanism body.Temp body.Count) |> ignore
                                 GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
 
-                            GeoBodies |> updateUI this Core Settings currentSystem
+                            GeoBodies |> updateUI this Core Settings CurrentSystem
                         | false -> ()
 
                 | :? FSSBodySignals as sigs ->                   
@@ -271,7 +271,7 @@ type Worker() =
                         let id = { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID }
                         GeoBodies <- GeoBodies.Add(id, buildSignalCountBody id sigs.BodyName s.Count GeoBodies))
 
-                    GeoBodies |> updateUI this Core Settings currentSystem
+                    GeoBodies |> updateUI this Core Settings CurrentSystem
 
                 | :? SAASignalsFound as sigs ->                   
                     // When signals are discovered through DSS, save/update them if they're geology and update the UI, display a notification
@@ -281,7 +281,7 @@ type Worker() =
                         let id = { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID }
                         GeoBodies <- GeoBodies.Add(id, buildSignalCountBody id sigs.BodyName s.Count GeoBodies))
 
-                    GeoBodies |> updateUI this Core Settings currentSystem
+                    GeoBodies |> updateUI this Core Settings CurrentSystem
 
                 | :? CodexEntry as codexEntry ->
                     // When something is scanned with the comp. scanner, save/update the result if it's geological, then update the UI
@@ -290,19 +290,19 @@ type Worker() =
                     | Some _ -> 
                         let id = { SystemAddress = codexEntry.SystemAddress; BodyId = codexEntry.BodyID }
                         GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id (Parser.toGeoSignal codexEntry.Name) GeoBodies)
-                        GeoBodies |> updateUI this Core Settings currentSystem
+                        GeoBodies |> updateUI this Core Settings CurrentSystem
                     | None -> ()
 
                 | :? FSDJump as jump ->
                     // Update current system after an FSD jump, then update the UI
                     if not ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) then 
-                        currentSystem <- setCurrentSystem currentSystem jump.SystemAddress
-                        GeoBodies |> updateUI this Core Settings currentSystem
+                        CurrentSystem <- setCurrentSystem CurrentSystem jump.SystemAddress
+                        GeoBodies |> updateUI this Core Settings CurrentSystem
 
                 | :? Location as location ->
                     // Update current system when our location is updated, then update the UI
-                    currentSystem <- setCurrentSystem currentSystem location.SystemAddress
-                    GeoBodies |> updateUI this Core Settings currentSystem
+                    CurrentSystem <- setCurrentSystem CurrentSystem location.SystemAddress
+                    GeoBodies |> updateUI this Core Settings CurrentSystem
 
                 | _ -> ()
 
@@ -312,7 +312,7 @@ type Worker() =
             if LogMonitorStateChangedEventArgs.IsBatchRead args.NewState then
                 Core.ClearGrid(this, buildNullRow)
             elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
-                GeoBodies |> updateUI this Core Settings currentSystem
+                GeoBodies |> updateUI this Core Settings CurrentSystem
 
         member this.Name with get() = "GeoPredictor"
         member this.Version with get() = Assembly.GetCallingAssembly().GetName().Version.ToString()
@@ -324,5 +324,5 @@ type Worker() =
                 Settings <- settings :?> Settings
 
                 // Update the UI if a setting that requires it has been changed by subscribing to event
-                Settings.NeedsUIUpdate.Add(fun () -> GeoBodies |> updateUI this Core Settings currentSystem)
+                Settings.NeedsUIUpdate.Add(fun () -> GeoBodies |> updateUI this Core Settings CurrentSystem)
             
