@@ -6,6 +6,7 @@ open Observatory.Framework.Files.Journal
 open Observatory.Framework.Interfaces
 open System.Collections.ObjectModel
 open System.Reflection
+open System.Text.Json
 
 // Has this geo been predicted, matched, or come as a complete surprise?
 type PredictionStatus =
@@ -13,9 +14,6 @@ type PredictionStatus =
     | Matched
     | Surprise
     | Unmatched
-
-// Detailed info about a geology scan; currently just a string, but I anticipate more elements and the type gives it purpose
-type SignalDetail = { Predicted:bool; Matched: bool }
 
 // A body with geology
 type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:Map<GeologySignal,PredictionStatus>; Notified:bool }
@@ -26,6 +24,9 @@ type BodyId = { SystemAddress:uint64; BodyId:int }
 // An row of data to be displayed in the UI
 type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyType: string; Volcanism:string; Temp:string }
 
+type CodexUnit = { Signal:GeologySignal; Region:string }
+
+
 // Public settings for Observatory
 type Settings() =
     let mutable notifyOnGeoBody = true
@@ -33,7 +34,6 @@ type Settings() =
     let mutable onlyShowCurrentSystem = true
     let mutable onlyShowWithScans = false
     let mutable onlyShowFailedPredictionBodies = false
-
 
     // Event that triggers for Settings that require UI updates when changed
     let needsUIUpdate = new Event<_>()
@@ -83,9 +83,10 @@ type Worker() =
     let mutable (Core:IObservatoryCore) = null                  // For interacting with Observatory Core
     let mutable (UI:PluginUI) = null                            // For updating the Observatory UI
     let mutable CurrentSystem = 0UL                             // ID of the system we're currently in
-    let mutable GeoBodies = Map.empty                           // List of all scanned bodies since the Observatory session began
+    let mutable GeoBodies = Map.empty                           // Map of all scanned bodies since the Observatory session began
     let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
     let mutable Settings = new Settings()                       // Settings for Observatory
+    let mutable CodexUnlocks = Set.empty                        // Set of all codex entries unlocked so far
 
     // Immutable internal values
     let externalVersion = "GeoPredictor v1.3"
@@ -197,7 +198,7 @@ type Worker() =
         | None -> { Name = name; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = count; GeosFound = Map.empty; Notified = false }             
 
     // If a body already exists, and the type of geology has not already been scanned, add the geology; if no body, create a new one
-    let buildFoundDetailBody id signal bodies =
+    let buildFoundDetailBody id signal codexUnlocks bodies =
         match bodies |> Map.tryFind(id) with
         | Some body ->
             match body.GeosFound |> Map.tryFind(signal) with
@@ -223,6 +224,8 @@ type Worker() =
         NotificationArgs (
             Title = "Geological signals",
             Detail = formatGeoPlanetNotification verbose volcanism temp count)
+
+
             
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
@@ -236,32 +239,33 @@ type Worker() =
             GridCollection.Add(buildNullRow)
             UI <- PluginUI(GridCollection)
 
+
+
+
         // Handle journal events
         member this.JournalEvent event =
             match (event:JournalBase) with 
                 | :? Scan as scan ->                
                     // When a body is scanned (FSS, Proximity or NAV beacon), save/update it if it's landable and has volcanism and update the UI
-                    match scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty with
-                        | true -> 
-                            let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
-                            let body = 
-                                buildScannedBody 
-                                    id 
-                                    scan.BodyName 
-                                    (Parser.toBodyType scan.PlanetClass) 
-                                    (Parser.toVolcanism scan.Volcanism) 
-                                    (scan.SurfaceTemperature * 1.0f<K>) 
-                                    GeoBodies
+                    if scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty then
+                        let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
+                        let body = 
+                            buildScannedBody 
+                                id 
+                                scan.BodyName 
+                                (Parser.toBodyType scan.PlanetClass) 
+                                (Parser.toVolcanism scan.Volcanism) 
+                                (scan.SurfaceTemperature * 1.0f<K>) 
+                                GeoBodies
                             
-                            match body.Notified || not Settings.NotifyOnGeoBody with
-                            | true -> 
-                                GeoBodies <- GeoBodies.Add(id, body)
-                            | false ->
-                                Core.SendNotification(buildGeoPlanetNotification Settings.VerboseNotifications body.Volcanism body.Temp body.Count) |> ignore
-                                GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
+                        match body.Notified || not Settings.NotifyOnGeoBody with
+                        | true -> 
+                            GeoBodies <- GeoBodies.Add(id, body)
+                        | false ->
+                            Core.SendNotification(buildGeoPlanetNotification Settings.VerboseNotifications body.Volcanism body.Temp body.Count) |> ignore
+                            GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
 
-                            GeoBodies |> updateUI this Core Settings CurrentSystem
-                        | false -> ()
+                        GeoBodies |> updateUI this Core Settings CurrentSystem
 
                 | :? FSSBodySignals as sigs ->                   
                     // When signals are discovered through FSS, save/update them if they're geology and update the UI, display a notification
@@ -285,11 +289,15 @@ type Worker() =
 
                 | :? CodexEntry as codexEntry ->
                     // When something is scanned with the comp. scanner, save/update the result if it's geological, then update the UI
-                    let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
                     match Parser.geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
                     | Some _ -> 
-                        let id = { SystemAddress = codexEntry.SystemAddress; BodyId = codexEntry.BodyID }
-                        GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id (Parser.toGeoSignal codexEntry.Name) GeoBodies)
+                        let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
+                        let signal = Parser.toGeoSignal codexEntry.Name
+
+                        if codexEntry.IsNewEntry then
+                            CodexUnlocks <- CodexUnlocks |> Set.add { Signal = signal; Region = codexEntry.Region }
+
+                        GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal CodexUnlocks GeoBodies)
                         GeoBodies |> updateUI this Core Settings CurrentSystem
                     | None -> ()
 

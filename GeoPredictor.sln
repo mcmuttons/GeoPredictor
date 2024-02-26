@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GeoPredictor", "GeoPredictor.fsproj", "{F045D79A-E7B8-4933-9C3E-F31D2CE56268}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GeoPredictor", "GeoPredictor.fsproj", "{F045D79A-E7B8-4933-9C3E-F31D2CE56268}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RegionMap", "..\RegionMap\RegionMap.csproj", "{0C06618D-6E2E-40E2-82D1-CA097E06677E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{F045D79A-E7B8-4933-9C3E-F31D2CE56268}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F045D79A-E7B8-4933-9C3E-F31D2CE56268}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F045D79A-E7B8-4933-9C3E-F31D2CE56268}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C06618D-6E2E-40E2-82D1-CA097E06677E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C06618D-6E2E-40E2-82D1-CA097E06677E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C06618D-6E2E-40E2-82D1-CA097E06677E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C06618D-6E2E-40E2-82D1-CA097E06677E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
