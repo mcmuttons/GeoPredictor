@@ -82,7 +82,6 @@ type Settings() =
             needsUIUpdate.Trigger()
 
 
-
 type Worker() =
 
     // Mutable values for interop
@@ -250,10 +249,8 @@ type Worker() =
         JsonSerializer.Serialize(serializable)
 
     let deserializeCodexUnlocks (json:string) =
-        let deserialized = 
-            JsonSerializer.Deserialize<Set<SerializableCodexData>> json
-            |> Set.map (fun cu -> { Signal = Parser.toGeoSignalFromSerialization cu.Sig; Region = Parser.toRegion cu.Reg })
-        deserialized
+        JsonSerializer.Deserialize<Set<SerializableCodexData>> json
+        |> Set.map (fun cu -> { Signal = Parser.toGeoSignalFromSerialization cu.Sig; Region = Parser.toRegion cu.Reg })
 
 
     // Interface for interop with Observatory, and entry point for the DLL.
