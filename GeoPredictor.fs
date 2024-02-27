@@ -5,6 +5,7 @@ open Observatory.Framework
 open Observatory.Framework.Files.Journal
 open Observatory.Framework.Interfaces
 open System.Collections.ObjectModel
+open System.IO
 open System.Reflection
 open System.Text.Json
 open EliteDangerousRegionMap
@@ -101,6 +102,7 @@ type Worker() =
     let predictionUnknown = "\u2754"                            // White question mark
     let predictionFailed = "\u274C"                             // Red X
     let newCodexEntry = "\U0001F537"                            // Blue diamond
+    let codexUnlocksFileName = "GeoPredictor-CodexUnlocks.json" // Filename to save codex status in
 
     // Null row for initializing the UI
     let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Volcanism = null; Temp = null; Region = null }
@@ -242,6 +244,7 @@ type Worker() =
             Title = "Geological signals",
             Detail = formatGeoPlanetNotification verbose volcanism temp count)
 
+    // Serialize and deserialize the codex unlocks. A little ugly since JsonSerializer isn't a fan of discriminated unions
     let serializeCodexUnlocks codexUnlocks =
         let serializable =
             codexUnlocks
@@ -252,6 +255,27 @@ type Worker() =
         JsonSerializer.Deserialize<Set<SerializableCodexData>> json
         |> Set.map (fun cu -> { Signal = Parser.toGeoSignalFromSerialization cu.Sig; Region = Parser.toRegion cu.Reg })
 
+    // Load and save codex unlock status - probably needs some better exception handling
+    let loadCodexUnlocks path filename =
+        let fullPath = path + filename
+        match File.Exists(fullPath) with
+        | true ->
+            try
+                File.ReadAllText(fullPath)
+                |> deserializeCodexUnlocks
+            with
+                | _ -> Set.empty
+        | false -> Set.empty
+
+    let saveCodexUnlocks (core:IObservatoryCore) filename codexUnlocks =
+        if not core.IsLogMonitorBatchReading then
+            let fullPath = core.PluginStorageFolder + filename
+            let serialized = codexUnlocks |> serializeCodexUnlocks
+            try
+                File.WriteAllText(fullPath, serialized)
+            with
+            | _ -> ()
+            
 
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
@@ -261,6 +285,8 @@ type Worker() =
         // Initialize interop and UI
         member this.Load core = 
             Core <- core
+
+            CodexUnlocks <- loadCodexUnlocks Core.PluginStorageFolder codexUnlocksFileName
             
             GridCollection.Add(buildNullRow)
             UI <- PluginUI(GridCollection)
@@ -312,6 +338,7 @@ type Worker() =
 
                         if codexEntry.IsNewEntry then
                             CodexUnlocks <- CodexUnlocks |> Set.add { Signal = signal; Region = region }
+                            saveCodexUnlocks Core codexUnlocksFileName CodexUnlocks
 
                         GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
                         GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks
@@ -335,15 +362,12 @@ type Worker() =
                 | _ -> ()
 
         member this.LogMonitorStateChanged args =
-
             // If data is being batch read (Read All), then wait until it's done before updating the UI
             if LogMonitorStateChangedEventArgs.IsBatchRead args.NewState then
                 Core.ClearGrid(this, buildNullRow)
             elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
                 GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks
-                let serialized = serializeCodexUnlocks CodexUnlocks
-                deserializeCodexUnlocks serialized |> ignore
-
+                saveCodexUnlocks Core codexUnlocksFileName CodexUnlocks
 
         member this.Name with get() = "GeoPredictor"
         member this.Version with get() = Assembly.GetCallingAssembly().GetName().Version.ToString()
