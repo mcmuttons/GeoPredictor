@@ -13,7 +13,6 @@ open EliteDangerousRegionMap
 // Has this geo been predicted, matched, or come as a complete surprise?
 type PredictionStatus =
     | Predicted
-    | CodexPredicted
     | Matched
     | Surprise
     | Unmatched
@@ -25,7 +24,7 @@ type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float
 type BodyId = { SystemAddress:uint64; BodyId:int }
 
 // An row of data to be displayed in the UI
-type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyType: string; Volcanism:string; Temp:string }
+type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyType: string; Volcanism:string; Temp:string; Region:string }
 
 type CodexUnit = { Signal:GeologySignal; Region:Region }
 
@@ -101,8 +100,8 @@ type Worker() =
     let newCodexEntry = "\U0001F537"                            // Blue diamond
 
     // Null row for initializing the UI
-    let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Volcanism = null; Temp = null }
-    let buildHeaderRow = { Body = externalVersion; Count = ""; Found = ""; Type = ""; BodyType = ""; Volcanism = ""; Temp = "" }
+    let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Volcanism = null; Temp = null; Region = null }
+    let buildHeaderRow = { Body = externalVersion; Count = ""; Found = ""; Type = ""; BodyType = ""; Volcanism = ""; Temp = ""; Region = "" }
 
     // Update current system if it has changed
     let setCurrentSystem oldSystem newSystem = 
@@ -157,7 +156,8 @@ type Worker() =
                                 | Surprise -> predictionFailed                             
                             Type = Parser.toGeoSignalOutput s; 
                             Volcanism = ""; 
-                            Temp = ""}))
+                            Temp = "";
+                            Region = ""}))
 
     // Build a grid entry for a body, with detail entries if applicable
     let buildGridEntry codexUnlocks body =   
@@ -171,7 +171,8 @@ type Worker() =
             Found = ""
             Type = "";
             Volcanism = Parser.toVolcanismOutput body.Volcanism;
-            Temp = (floor (float body.Temp)).ToString() + "K" }
+            Temp = (floor (float body.Temp)).ToString() + "K"
+            Region = Parser.toRegionOut body.Region}
 
         body
         |> buildGeoDetailEntries codexUnlocks

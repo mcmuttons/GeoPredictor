@@ -253,6 +253,52 @@ module Parser =
            | "$Codex_RegionName_42;" | "The Void" -> TheVoid
            | _ -> UnknownRegion region
 
+    let toRegionOut region =
+        match region with
+        | GalacticCentre -> "Galactic Centre"
+        | EmpyreanStraits -> "Empyrean Straits"
+        | RykersHope -> "Ryker's Hope"
+        | OdinsHold -> "Odin's Hold"
+        | NormaArm -> "Norma Arm"
+        | ArcadianStream -> "Arcadian Stream"
+        | Izanami -> "Izanami"
+        | InnerOrionPerseusConflux -> "Inner Orion-Perseus Conflux"
+        | InnerScutumCentaurusArm -> "Inner Scutum-Centaurus Arm"
+        | NormaExpanse -> "Norma Expanse"
+        | TrojanBelt -> "Trojan Belt"
+        | TheVeils -> "The Veils"
+        | NewtonsVault -> "Newton's Vault"
+        | TheConduit -> "The Conduit"
+        | OuterOrionPerseusConflux -> "Outer Orion-Perseus Conflux"
+        | OrionCygnusArm -> "Orion-Cygnus Arm"
+        | Temple -> "Temple"
+        | InnerOrionSpur -> "Inner Orion Spur"
+        | HawkingsGap -> "Hawking's Gap"
+        | DrymansPoint -> "Dryman's Point"
+        | SagittariusCarinaArm -> "Sagittarius-Carina Arm"
+        | MareSomnia -> "Mare Somnia"
+        | Acheron -> "Acheron"
+        | FormorianFrontier -> "Formorian Frontier"
+        | HieronymusDelta -> "Hieronymus Delta"
+        | OuterScutumCentaurusArm -> "Outer Scutum-Centaurus Arm"
+        | OuterArm -> "Outer Arm"
+        | AquilasHalo -> "Aquila's Halo"
+        | ErrantMarches -> "Errant Marches"
+        | PerseusArm -> "Perseus Arm"
+        | FormidineRift -> "Formidine Rift"
+        | VulcanGate -> "Vulcan Gate"
+        | ElysianShore -> "Elysian Shore"
+        | SanguineousRim -> "Sanguineous Rim"
+        | OuterOrionSpur -> "Outer Orion Spur"
+        | AchillessAltar -> "Achilles's Altar"
+        | Xibalba -> "Xibalba"
+        | LyrasSong -> "Lyra's Song"
+        | Tenebrae -> "Tenebrae"
+        | TheAbyss -> "The Abyss"
+        | KeplersCrest -> "Kepler's Crest"
+        | TheVoid -> "The Void"
+        | UnknownRegion region -> $"Unmatched region: {region}!"
+
     // Parse geological signal type
     let toGeoSignalOutput signal =
         match signal with
