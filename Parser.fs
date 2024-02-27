@@ -101,7 +101,7 @@ type GeologySignal =
     | MethaneIceFumaroleSignal
     | IronMagmaLavaSpoutSignal
     | SilicateMagmaLavaSpoutSignal
-    | UnexpectedValue of string
+    | UnexpectedSignal of string
 
 type Volcanism = { Level:VolcanismLevel; Type:VolcanismType }
 
@@ -141,7 +141,7 @@ module Parser =
         | v when v.Contains("silicate vapour geysers") -> SilicateVapourGeysers
         | _ -> UnknownVolcanism volcanism
 
-    let private toVolcanismTypeOutput volcanismType =
+    let private toVolcanismTypeOut volcanismType =
         match volcanismType with
         | WaterMagma -> "Water Magma"
         | SulphurDioxideMagma -> "Sulphur Dioxide Magma"
@@ -166,7 +166,7 @@ module Parser =
         | v when v.StartsWith("major") -> Major
         | _ -> Unspecified
 
-    let private toVolcanismLevelOutput level =
+    let private toVolcanismLevelOut level =
         match level with
         | Minor -> "Minor "
         | Major -> "Major "
@@ -183,8 +183,8 @@ module Parser =
     let toVolcanismNotYetSet =
         { Level = Unspecified; Type = VolcanismNotYetSet }
 
-    let toVolcanismOutput volcanism =
-        toVolcanismLevelOutput volcanism.Level + toVolcanismTypeOutput volcanism.Type
+    let toVolcanismOut volcanism =
+        toVolcanismLevelOut volcanism.Level + toVolcanismTypeOut volcanism.Type
 
     // Parse body type
     let toBodyType bodyType =
@@ -196,7 +196,7 @@ module Parser =
         | "Rocky ice body" -> RockyIceBody
         | _ -> NonLandable bodyType
 
-    let toBodyTypeOutput bodyType =
+    let toBodyTypeOut bodyType =
         match bodyType with
         | MetalRichBody -> "Metal Rich"
         | HighMetalContentBody -> "HMC"
@@ -300,7 +300,7 @@ module Parser =
         | UnknownRegion region -> $"Unmatched region: {region}!"
 
     // Parse geological signal type
-    let toGeoSignalOutput signal =
+    let toGeoSignalOut signal =
         match signal with
         | WaterIceGeyserSignal -> "Water Ice Geysers"
         | WaterIceFumaroleSignal -> "Water Ice Fumaroles"
@@ -325,57 +325,72 @@ module Parser =
         | MethaneIceFumaroleSignal -> "Methane Ice Fumaroles"
         | IronMagmaLavaSpoutSignal -> "Iron Magma Lava Spouts"
         | SilicateMagmaLavaSpoutSignal -> "Silicate Magma Lava Spouts"
-        | UnexpectedValue vt -> $"Found {vt} and didn't expect it!"
+        | UnexpectedSignal vt -> $"Found {vt} and didn't expect it!"
 
-    let toGeoSignal signal =
+    let toGeoSignalFromSerialization signal =
+        match signal with
+        | "Water Ice Geysers" -> WaterIceGeyserSignal
+        | "Water Ice Fumaroles" -> WaterIceFumaroleSignal
+        | "Water Geysers" -> WaterGeyserSignal
+        | "Water Fumaroles" -> WaterFumaroleSignal
+        | "Water Gas Vents" -> WaterGasVentSignal
+        | "Sulphur Dioxide Ice Fumaroles" -> SulphurDioxideIceFumaroleSignal
+        | "Sulphur Dioxide Fumaroles" -> SulphurDioxideFumaroleSignal
+        | "Sulphur Dioxide Gas Vents" -> SulphurDioxideGasVentSignal
+        | "Silicate Vapour Ice Fumaroles" -> SilicateVapourIceFumaroleSignal
+        | "Silicate Vapour Fumaroles" -> SilicateVapourFumaroleSignal
+        | "Silicate Vapour Gas Vents" -> SilicateVapourGasVentSignal
+        | "Carbon Dioxide Ice Geysers" -> CarbonDioxideIceGeyserSignal
+        | "Carbon Dioxide Ice Fumaroles" -> CarbonDioxideIceFumaroleSignal
+        | "Carbon Dioxide Fumaroles" -> CarbonDioxideFumaroleSignal
+        | "Carbon Dioxide Gas Vents" -> CarbonDioxideGasVentSignal
+        | "Ammonia Ice Geysers" -> AmmoniaIceGeyserSignal
+        | "Ammonia Ice Fumaroles" -> AmmoniaIceFumaroleSignal
+        | "Nitrogen Ice Geysers" -> NitrogenIceGeyserSignal
+        | "Nitrogen Ice Fumaroles" -> NitrogenIceFumaroleSignal
+        | "Methane Ice Geysers" -> MethaneIceGeyserSignal
+        | "Methane Ice Fumaroles" -> MethaneIceFumaroleSignal
+        | "Iron Magma Lava Spouts" -> IronMagmaLavaSpoutSignal
+        | "Silicate Magma Lava Spouts" -> SilicateMagmaLavaSpoutSignal
+        | _ -> UnexpectedSignal $"Unexpected serialized signal: {signal}"
+
+    let toGeoSignalFromJournal signal =
         match signal with 
         | "$Codex_Ent_IceGeysers_WaterMagma_Name;" -> WaterIceGeyserSignal
         | "$Codex_Ent_IceFumarole_WaterMagma_Name;" -> WaterIceFumaroleSignal
         | "$Codex_Ent_Geysers_WaterMagma_Name;" -> WaterGeyserSignal
         | "$Codex_Ent_Fumarole_WaterMagma_Name;" -> WaterFumaroleSignal
         | "$Codex_Ent_Gas_Vents_WaterMagma_Name;" -> WaterGasVentSignal
-
         | "$Codex_Ent_IceFumarole_SulphurDioxideMagma_Name;" -> SulphurDioxideIceFumaroleSignal
         | "$Codex_Ent_Fumarole_SulphurDioxideMagma_Name;" -> SulphurDioxideFumaroleSignal
         | "$Codex_Ent_Gas_Vents_SulphurDioxideMagma_Name;" -> SulphurDioxideGasVentSignal
-        
         | "$Codex_Ent_IceGeysers_AmmoniaMagma_Name;" -> AmmoniaIceGeyserSignal
         | "$Codex_Ent_IceFumarole_AmmoniaMagma_Name;" -> AmmoniaIceFumaroleSignal
-        
         | "$Codex_Ent_IceGeysers_MethaneMagma_Name;" -> MethaneIceGeyserSignal
         | "$Codex_Ent_IceFumarole_MethaneMagma_Name;" -> MethaneIceFumaroleSignal
-        
         | "$Codex_Ent_IceGeysers_NitrogenMagma_Name;" -> NitrogenIceGeyserSignal
         | "$Codex_Ent_IceFumarole_NitrogenMagma_Name;" -> NitrogenIceGeyserSignal
-        
         | "$Codex_Ent_Lava_Spouts_SilicateMagma_Name;" -> SilicateMagmaLavaSpoutSignal
         | "$Codex_Ent_Lava_Spouts_IronMagma_Name;" -> IronMagmaLavaSpoutSignal
-        
         | "$Codex_Ent_IceGeysers_WaterGeysers_Name;" -> WaterIceGeyserSignal
         | "$Codex_Ent_IceFumarole_WaterGeysers_Name;" -> WaterIceFumaroleSignal
         | "$Codex_Ent_Geysers_WaterGeysers_Name;" -> WaterGeyserSignal
         | "$Codex_Ent_Fumarole_WaterGeysers_Name;" -> WaterFumaroleSignal
         | "$Codex_Ent_Gas_Vents_WaterGeysers_Name;" -> WaterGasVentSignal
-        
         | "$Codex_Ent_IceGeysers_CarbonDioxideGeysers_Name;" -> CarbonDioxideIceGeyserSignal
         | "$Codex_Ent_IceFumarole_CarbonDioxideGeysers_Name;" -> CarbonDioxideIceFumaroleSignal
         | "$Codex_Ent_Fumarole_CarbonDioxideGeysers_Name;" -> CarbonDioxideFumaroleSignal
         | "$Codex_Ent_Gas_Vents_CarbonDioxideGeysers_Name;" -> CarbonDioxideGasVentSignal
-        
         | "$Codex_Ent_IceGeysers_AmmoniaGeysers_Name;" -> AmmoniaIceGeyserSignal
         | "$Codex_Ent_IceFumarole_AmmoniaGeysers_Name;" -> AmmoniaIceFumaroleSignal
-        
         | "$Codex_Ent_IceGeysers_MethaneGeysers_Name;" -> MethaneIceGeyserSignal
         | "$Codex_Ent_IceFumarole_MethaneGeysers_Name;" -> MethaneIceFumaroleSignal
-        
         | "$Codex_Ent_IceGeysers_NitrogenGeysers_Name;" -> NitrogenIceGeyserSignal
         | "$Codex_Ent_IceFumarole_NitrogenGeysers_Name;" -> NitrogenIceFumaroleSignal
-               
         | "$Codex_Ent_IceFumarole_SilicateVapourGeysers_Name;" -> SilicateVapourIceFumaroleSignal
         | "$Codex_Ent_Fumarole_SilicateVapourGeysers_Name;" -> SilicateVapourFumaroleSignal
         | "$Codex_Ent_Gas_Vents_SilicateVapourGeysers_Name;" -> SilicateVapourGasVentSignal
-
-        | _ -> UnexpectedValue $"Unexpected geology scan: {signal}"
+        | _ -> UnexpectedSignal $"Unexpected geology scan: {signal}"
 
 
 
