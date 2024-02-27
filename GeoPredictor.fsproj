@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\RegionMap\RegionMap.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="ObservatoryFramework">
       <HintPath>..\ObservatoryCore\ObservatoryFramework\bin\Release\net6.0\ObservatoryFramework.dll</HintPath>
     </Reference>
