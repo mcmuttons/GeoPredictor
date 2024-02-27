@@ -32,6 +32,51 @@ type BodyType =
     | NonLandable of string
     | BodyTypeNotYetSet
 
+type Region =
+    | GalacticCentre
+    | EmpyreanStraits
+    | RykersHope
+    | OdinsHold
+    | NormaArm
+    | ArcadianStream
+    | Izanami
+    | InnerOrionPerseusConflux
+    | InnerScutumCentaurusArm
+    | NormaExpanse
+    | TrojanBelt
+    | TheVeils
+    | NewtonsVault
+    | TheConduit
+    | OuterOrionPerseusConflux
+    | OrionCygnusArm
+    | Temple
+    | InnerOrionSpur
+    | HawkingsGap
+    | DrymansPoint
+    | SagittariusCarinaArm
+    | MareSomnia
+    | Acheron
+    | FormorianFrontier
+    | HieronymusDelta
+    | OuterScutumCentaurusArm
+    | OuterArm
+    | AquilasHalo
+    | ErrantMarches
+    | PerseusArm
+    | FormidineRift
+    | VulcanGate
+    | ElysianShore
+    | SanguineousRim
+    | OuterOrionSpur
+    | AchillessAltar
+    | Xibalba
+    | LyrasSong
+    | Tenebrae
+    | TheAbyss
+    | KeplersCrest
+    | TheVoid
+    | UnknownRegion of string
+
 type GeologySignal =
     | WaterIceGeyserSignal
     | WaterIceFumaroleSignal
@@ -160,6 +205,53 @@ module Parser =
         | RockyIceBody -> "Rocky Ice"
         | NonLandable bt -> $"Nonlandable {bt} (why am I here?)"
         | BodyTypeNotYetSet -> "Type not set"
+
+    // Parse Region
+    let toRegion region =
+        match region with
+           | "$Codex_RegionName_1;" | "Galactic Centre" -> GalacticCentre
+           | "$Codex_RegionName_2;" | "Empyrean Straits" -> EmpyreanStraits
+           | "$Codex_RegionName_3;" | "Ryker's Hope" -> RykersHope
+           | "$Codex_RegionName_4;" | "Odin's Hold" -> OdinsHold
+           | "$Codex_RegionName_5;" | "Norma Arm" -> NormaArm
+           | "$Codex_RegionName_6;" | "Arcadian Stream" -> ArcadianStream
+           | "$Codex_RegionName_7;" | "Izanami" -> Izanami
+           | "$Codex_RegionName_8;" | "Inner Orion-Perseus Conflux" -> InnerOrionPerseusConflux
+           | "$Codex_RegionName_9;" | "Inner Scutum-Centaurus Arm" -> InnerScutumCentaurusArm
+           | "$Codex_RegionName_10;" | "Norma Expanse" -> NormaExpanse
+           | "$Codex_RegionName_11;" | "Trojan Belt" -> TrojanBelt
+           | "$Codex_RegionName_12;" | "The Veils" -> TheVeils
+           | "$Codex_RegionName_13;" | "Newton's Vault" -> NewtonsVault
+           | "$Codex_RegionName_14;" | "The Conduit" -> TheConduit
+           | "$Codex_RegionName_15;" | "Outer Orion-Perseus Conflux" -> OuterOrionPerseusConflux 
+           | "$Codex_RegionName_16;" | "Orion-Cygnus Arm" -> OrionCygnusArm
+           | "$Codex_RegionName_17;" | "Temple" -> Temple
+           | "$Codex_RegionName_18;" | "Inner Orion Spur" -> InnerOrionSpur
+           | "$Codex_RegionName_19;" | "Hawking's Gap" -> HawkingsGap
+           | "$Codex_RegionName_20;" | "Dryman's Point" -> DrymansPoint
+           | "$Codex_RegionName_21;" | "Sagittarius-Carina Arm" -> SagittariusCarinaArm
+           | "$Codex_RegionName_22;" | "Mare Somnia" -> MareSomnia
+           | "$Codex_RegionName_23;" | "Acheron" -> Acheron
+           | "$Codex_RegionName_24;" | "Formorian Frontier" -> FormorianFrontier
+           | "$Codex_RegionName_25;" | "Hieronymus Delta" -> HieronymusDelta
+           | "$Codex_RegionName_26;" | "Outer Scutum-Centaurus Arm" -> OuterScutumCentaurusArm
+           | "$Codex_RegionName_27;" | "Outer Arm" -> OuterArm
+           | "$Codex_RegionName_28;" | "Aquila's Halo" -> AquilasHalo
+           | "$Codex_RegionName_29;" | "Errant Marches" -> ErrantMarches
+           | "$Codex_RegionName_30;" | "Perseus Arm" -> PerseusArm
+           | "$Codex_RegionName_31;" | "Formidine Rift" -> FormidineRift
+           | "$Codex_RegionName_32;" | "Vulcan Gate" -> VulcanGate
+           | "$Codex_RegionName_33;" | "Elysian Shore" -> ElysianShore
+           | "$Codex_RegionName_34;" | "Sanguineous Rim" -> SanguineousRim
+           | "$Codex_RegionName_35;" | "Outer Orion Spur" -> OuterOrionSpur
+           | "$Codex_RegionName_36;" | "Achilles's Altar" -> AchillessAltar
+           | "$Codex_RegionName_37;" | "Xibalba" -> Xibalba
+           | "$Codex_RegionName_38;" | "Lyra's Song" -> LyrasSong
+           | "$Codex_RegionName_39;" | "Tenebrae" -> Tenebrae
+           | "$Codex_RegionName_40;" | "The Abyss" -> TheAbyss
+           | "$Codex_RegionName_41;" | "Kepler's Crest" -> KeplersCrest
+           | "$Codex_RegionName_42;" | "The Void" -> TheVoid
+           | _ -> UnknownRegion region
 
     // Parse geological signal type
     let toGeoSignalOutput signal =

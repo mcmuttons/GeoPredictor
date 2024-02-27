@@ -24,7 +24,7 @@ type BodyId = { SystemAddress:uint64; BodyId:int }
 // An row of data to be displayed in the UI
 type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyType: string; Volcanism:string; Temp:string }
 
-type CodexUnit = { Signal:GeologySignal; Region:string }
+type CodexUnit = { Signal:GeologySignal; Region:Region }
 
 
 // Public settings for Observatory
@@ -83,6 +83,7 @@ type Worker() =
     let mutable (Core:IObservatoryCore) = null                  // For interacting with Observatory Core
     let mutable (UI:PluginUI) = null                            // For updating the Observatory UI
     let mutable CurrentSystem = 0UL                             // ID of the system we're currently in
+    let mutable CurrentRegion = UnknownRegion                   // Region we're currently in
     let mutable GeoBodies = Map.empty                           // Map of all scanned bodies since the Observatory session began
     let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
     let mutable Settings = new Settings()                       // Settings for Observatory
@@ -225,7 +226,6 @@ type Worker() =
             Title = "Geological signals",
             Detail = formatGeoPlanetNotification verbose volcanism temp count)
 
-
             
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
@@ -238,8 +238,6 @@ type Worker() =
             
             GridCollection.Add(buildNullRow)
             UI <- PluginUI(GridCollection)
-
-
 
 
         // Handle journal events
@@ -267,16 +265,6 @@ type Worker() =
 
                         GeoBodies |> updateUI this Core Settings CurrentSystem
 
-                | :? FSSBodySignals as sigs ->                   
-                    // When signals are discovered through FSS, save/update them if they're geology and update the UI, display a notification
-                    sigs.Signals 
-                    |> Seq.filter (fun s -> s.Type = geoSignalType)
-                    |> Seq.iter (fun s ->
-                        let id = { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID }
-                        GeoBodies <- GeoBodies.Add(id, buildSignalCountBody id sigs.BodyName s.Count GeoBodies))
-
-                    GeoBodies |> updateUI this Core Settings CurrentSystem
-
                 | :? SAASignalsFound as sigs ->                   
                     // When signals are discovered through DSS, save/update them if they're geology and update the UI, display a notification
                     sigs.Signals 
@@ -295,7 +283,7 @@ type Worker() =
                         let signal = Parser.toGeoSignal codexEntry.Name
 
                         if codexEntry.IsNewEntry then
-                            CodexUnlocks <- CodexUnlocks |> Set.add { Signal = signal; Region = codexEntry.Region }
+                            CodexUnlocks <- CodexUnlocks |> Set.add { Signal = signal; Region = (Parser.toRegion codexEntry.Region) }
 
                         GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal CodexUnlocks GeoBodies)
                         GeoBodies |> updateUI this Core Settings CurrentSystem
