@@ -26,7 +26,11 @@ type BodyId = { SystemAddress:uint64; BodyId:int }
 // An row of data to be displayed in the UI
 type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyType: string; Volcanism:string; Temp:string; Region:string }
 
+// A single codex entry
 type CodexUnit = { Signal:GeologySignal; Region:Region }
+
+// Type specifically for serialization since the JsonSerializer doesn't play well with discriminated unions
+type SerializableCodexData = { Sig:string; Reg:string }
 
 
 // Public settings for Observatory
@@ -154,7 +158,7 @@ type Worker() =
                                     | false -> predictionUnknown + newCodexEntry
                                 | Unmatched -> "" 
                                 | Surprise -> predictionFailed                             
-                            Type = Parser.toGeoSignalOutput s; 
+                            Type = Parser.toGeoSignalOut s; 
                             Volcanism = ""; 
                             Temp = "";
                             Region = ""}))
@@ -163,14 +167,14 @@ type Worker() =
     let buildGridEntry codexUnlocks body =   
         let firstRow = {
             Body = body.Name;
-            BodyType = Parser.toBodyTypeOutput body.BodyType;
+            BodyType = Parser.toBodyTypeOut body.BodyType;
             Count = 
                 match body.Count with 
                 | 0 -> "FSS/DSS" 
                 | _ -> body.Count.ToString();
             Found = ""
             Type = "";
-            Volcanism = Parser.toVolcanismOutput body.Volcanism;
+            Volcanism = Parser.toVolcanismOut body.Volcanism;
             Temp = (floor (float body.Temp)).ToString() + "K"
             Region = Parser.toRegionOut body.Region}
 
@@ -226,7 +230,7 @@ type Worker() =
     
     // Format notification text for output
     let formatGeoPlanetNotification verbose volcanism temp count =
-        let volcanismLowerCase = (Parser.toVolcanismOutput volcanism).ToLower()
+        let volcanismLowerCase = (Parser.toVolcanismOut volcanism).ToLower()
         match (count <> 0, verbose) with
         | true, true -> $"Landable body with {count} geological signals, and {volcanismLowerCase} at {floor (float temp)}K."
         | true, false -> $"{count} geological signals found"
@@ -239,7 +243,19 @@ type Worker() =
             Title = "Geological signals",
             Detail = formatGeoPlanetNotification verbose volcanism temp count)
 
-            
+    let serializeCodexUnlocks codexUnlocks =
+        let serializable =
+            codexUnlocks
+            |> Set.map (fun cu -> { Sig = Parser.toGeoSignalOut cu.Signal; Reg = Parser.toRegionOut cu.Region })
+        JsonSerializer.Serialize(serializable)
+
+    let deserializeCodexUnlocks (json:string) =
+        let deserialized = 
+            JsonSerializer.Deserialize<Set<SerializableCodexData>> json
+            |> Set.map (fun cu -> { Signal = Parser.toGeoSignalFromSerialization cu.Sig; Region = Parser.toRegion cu.Reg })
+        deserialized
+
+
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
     // possible. 
@@ -294,7 +310,7 @@ type Worker() =
                     match Parser.geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
                     | Some _ -> 
                         let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
-                        let signal = Parser.toGeoSignal codexEntry.Name
+                        let signal = Parser.toGeoSignalFromJournal codexEntry.Name
                         let region = Parser.toRegion codexEntry.Region
 
                         if codexEntry.IsNewEntry then
@@ -328,6 +344,9 @@ type Worker() =
                 Core.ClearGrid(this, buildNullRow)
             elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
                 GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks
+                let serialized = serializeCodexUnlocks CodexUnlocks
+                deserializeCodexUnlocks serialized |> ignore
+
 
         member this.Name with get() = "GeoPredictor"
         member this.Version with get() = Assembly.GetCallingAssembly().GetName().Version.ToString()
