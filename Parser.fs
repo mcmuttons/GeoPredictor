@@ -1,111 +1,7 @@
 ﻿namespace GeoPredictor
 
-type VolcanismType =
-    | WaterMagma
-    | SulphurDioxideMagma
-    | AmmoniaMagma
-    | MethaneMagma
-    | NitrogenMagma
-    | SilicateMagma
-    | IronMagma
-    | WaterGeysers
-    | CarbonDioxideGeysers
-    | AmmoniaGeysers
-    | MethaneGeysers
-    | NitrogenGeysers
-    | HeliumGeysers
-    | SilicateVapourGeysers
-    | UnknownVolcanism of string
-    | VolcanismNotYetSet
-
-type VolcanismLevel =
-    | Minor
-    | Major
-    | Unspecified
-
-type BodyType =
-    | MetalRichBody
-    | HighMetalContentBody
-    | RockyBody
-    | IcyBody
-    | RockyIceBody
-    | NonLandable of string
-    | BodyTypeNotYetSet
-
-type Region =
-    | GalacticCentre
-    | EmpyreanStraits
-    | RykersHope
-    | OdinsHold
-    | NormaArm
-    | ArcadianStream
-    | Izanami
-    | InnerOrionPerseusConflux
-    | InnerScutumCentaurusArm
-    | NormaExpanse
-    | TrojanBelt
-    | TheVeils
-    | NewtonsVault
-    | TheConduit
-    | OuterOrionPerseusConflux
-    | OrionCygnusArm
-    | Temple
-    | InnerOrionSpur
-    | HawkingsGap
-    | DrymansPoint
-    | SagittariusCarinaArm
-    | MareSomnia
-    | Acheron
-    | FormorianFrontier
-    | HieronymusDelta
-    | OuterScutumCentaurusArm
-    | OuterArm
-    | AquilasHalo
-    | ErrantMarches
-    | PerseusArm
-    | FormidineRift
-    | VulcanGate
-    | ElysianShore
-    | SanguineousRim
-    | OuterOrionSpur
-    | AchillessAltar
-    | Xibalba
-    | LyrasSong
-    | Tenebrae
-    | TheAbyss
-    | KeplersCrest
-    | TheVoid
-    | UnknownRegion of string
-
-type GeologySignal =
-    | WaterIceGeyserSignal
-    | WaterIceFumaroleSignal
-    | WaterGeyserSignal
-    | WaterFumaroleSignal
-    | WaterGasVentSignal
-    | SulphurDioxideIceFumaroleSignal
-    | SulphurDioxideFumaroleSignal
-    | SulphurDioxideGasVentSignal
-    | SilicateVapourIceFumaroleSignal
-    | SilicateVapourFumaroleSignal
-    | SilicateVapourGasVentSignal
-    | CarbonDioxideIceGeyserSignal
-    | CarbonDioxideIceFumaroleSignal
-    | CarbonDioxideFumaroleSignal
-    | CarbonDioxideGasVentSignal
-    | AmmoniaIceGeyserSignal
-    | AmmoniaIceFumaroleSignal
-    | NitrogenIceGeyserSignal
-    | NitrogenIceFumaroleSignal
-    | MethaneIceGeyserSignal
-    | MethaneIceFumaroleSignal
-    | IronMagmaLavaSpoutSignal
-    | SilicateMagmaLavaSpoutSignal
-    | UnexpectedSignal of string
-
-type Volcanism = { Level:VolcanismLevel; Type:VolcanismType }
-
 module Parser =
+
     // Utility for easy pipelining
     let replace (original:string) replacement (string:string) =
         string.Replace(original, replacement)
@@ -118,10 +14,7 @@ module Parser =
             | null -> false
             | "" -> false
             | _ -> true
-
     
-    // Input parsing
-
     // Parse volcanism
     let private toVolcanismType (volcanism:string) =
         match volcanism with
@@ -391,8 +284,6 @@ module Parser =
         | "$Codex_Ent_Fumarole_SilicateVapourGeysers_Name;" -> SilicateVapourFumaroleSignal
         | "$Codex_Ent_Gas_Vents_SilicateVapourGeysers_Name;" -> SilicateVapourGasVentSignal
         | _ -> UnexpectedSignal $"Unexpected geology scan: {signal}"
-
-
 
     // All possible permutations of the types of geology and volcanisms to match on codex scans. I'm pretty sure a lot of 
     // these combinations are invalid, and that especially some of the magmas don't occur at all on landable bodies, even 
