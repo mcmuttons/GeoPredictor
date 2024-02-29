@@ -33,6 +33,7 @@ type CodexUnit = { Signal:GeologySignal; Region:Region }
 // Type specifically for serialization since the JsonSerializer doesn't play well with discriminated unions
 type SerializableCodexData = { Sig:string; Reg:string }
 
+type InternalSettings = { HasReadAllBeenRun:bool }
 
 // Public settings for Observatory
 type Settings() =
@@ -82,7 +83,6 @@ type Settings() =
             onlyShowFailedPredictionBodies <- setting
             needsUIUpdate.Trigger()
 
-
 type Worker() =
 
     // Mutable values for interop
@@ -95,18 +95,22 @@ type Worker() =
     let mutable Settings = new Settings()                       // Settings for Observatory
     let mutable CodexUnlocks = Set.empty                        // Set of all codex entries unlocked so far
 
+    let mutable InternalSettings =                              // Initialize internal settings that don't get exposed to Observatory
+        { HasReadAllBeenRun = false }
+
     // Immutable internal values
     let externalVersion = "GeoPredictor v1.3"
-    let geoSignalType = "$SAA_SignalType_Geological;"           // Journal value for a geological signal
-    let predictionSuccess = "\u2714"                            // Heavy check mark
-    let predictionUnknown = "\u2754"                            // White question mark
-    let predictionFailed = "\u274C"                             // Red X
-    let newCodexEntry = "\U0001F537"                            // Blue diamond
-    let codexUnlocksFileName = "GeoPredictor-CodexUnlocks.json" // Filename to save codex status in
+    let geoSignalType = "$SAA_SignalType_Geological;"                       // Journal value for a geological signal
+    let predictionSuccess = "\u2714"                                        // Heavy check mark
+    let predictionUnknown = "\u2754"                                        // White question mark
+    let predictionFailed = "\u274C"                                         // Red X
+    let newCodexEntry = "\U0001F537"                                        // Blue diamond
+    let codexUnlocksFileName = "GeoPredictor-CodexUnlocks.json"             // Filename to save codex status in
+    let internalSettingsFileName = "GeoPredictor-InternalSettings.json"     // Filename to save internal settings in
 
     // Null row for initializing the UI
     let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Volcanism = null; Temp = null; Region = null }
-    let buildHeaderRow = { Body = externalVersion; Count = ""; Found = ""; Type = ""; BodyType = ""; Volcanism = ""; Temp = ""; Region = "" }
+    let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Volcanism = ""; Temp = ""; Region = "" }
 
     // Update current system if it has changed
     let setCurrentSystem oldSystem newSystem = 
@@ -183,21 +187,39 @@ type Worker() =
         |> buildGeoDetailEntries codexUnlocks
         |> List.append [firstRow]
 
+    let firstRunMessage =
+        [   "Click 'Read All', please!"
+            "NOTE: This can take several"
+            "minutes, but only needs to"
+            "be done once!"
+            ""
+            "Go make some coffee."
+            "I dunno."
+            ""
+            "ALSO NOTE: If you're missing"
+            "logs, you might get false"
+            "Codex positives. If you scan"
+            "those, it should remember"
+            "from then on. :)" ]
+        |> String.concat "\n"
+
     // Repaint the UI
-    let updateGrid worker (core:IObservatoryCore) gridRows =
+    let updateGrid worker (core:IObservatoryCore) hasReadAllBeenRun gridRows =
         match core.IsLogMonitorBatchReading with
             | true -> ()
             | false ->
                 core.ClearGrid(worker, buildNullRow)
-                core.AddGridItem(worker, buildHeaderRow)
+                core.AddGridItem(worker, { emptyRow with Body = externalVersion })
+                if not hasReadAllBeenRun then
+                    core.AddGridItem(worker, { emptyRow with Type = firstRunMessage })
                 core.AddGridItems(worker, Seq.cast(gridRows))
 
     // Filter bodies for display, turn them into a single list of entries, then update the UI
-    let updateUI worker core settings currentSys codexUnlocks bodies = 
+    let updateUI worker core settings hasReadAllBeenRun currentSys codexUnlocks bodies = 
         bodies 
         |> filterBodiesForOutput settings currentSys
         |> Seq.collect (fun body -> buildGridEntry codexUnlocks body.Value)
-        |> updateGrid worker core                            
+        |> updateGrid worker core hasReadAllBeenRun
 
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
     let buildScannedBody id name bodyType volcanism temp region bodies =
@@ -245,32 +267,39 @@ type Worker() =
             Detail = formatGeoPlanetNotification verbose volcanism temp count)
 
     // Serialize and deserialize the codex unlocks. A little ugly since JsonSerializer isn't a fan of discriminated unions
-    let serializeCodexUnlocks codexUnlocks =
-        let serializable =
-            codexUnlocks
-            |> Set.map (fun cu -> { Sig = Parser.toGeoSignalOut cu.Signal; Reg = Parser.toRegionOut cu.Region })
-        JsonSerializer.Serialize(serializable)
-
     let deserializeCodexUnlocks (json:string) =
         JsonSerializer.Deserialize<Set<SerializableCodexData>> json
         |> Set.map (fun cu -> { Signal = Parser.toGeoSignalFromSerialization cu.Sig; Region = Parser.toRegion cu.Reg })
 
-    // Load and save codex unlock status - probably needs some better exception handling
-    let loadCodexUnlocks path filename =
+    let serializeCodexUnlocks codexUnlocks =
+        let serializableCodexUnlocks =
+            codexUnlocks |> Set.map (fun cu -> { Sig = Parser.toGeoSignalOut cu.Signal; Reg = Parser.toRegionOut cu.Region })
+                           
+        JsonSerializer.Serialize(serializableCodexUnlocks)
+
+    // Serialize and deserialize internal settings
+    let deserializeInteralSettings (json:string) =
+        JsonSerializer.Deserialize<InternalSettings> json
+
+    let serializeInternalSettings settings =
+        JsonSerializer.Serialize settings
+
+    // read from and write to file
+    let deserializeFromFile faultValue path filename deserializer =
         let fullPath = path + filename
         match File.Exists(fullPath) with
         | true ->
             try
-                File.ReadAllText(fullPath)
-                |> deserializeCodexUnlocks
+                File.ReadAllText(fullPath) |> deserializer
             with
-                | _ -> Set.empty
-        | false -> Set.empty
+                | _ -> faultValue
+        | false -> 
+            faultValue
 
-    let saveCodexUnlocks (core:IObservatoryCore) filename codexUnlocks =
+    let serializeToFile (core:IObservatoryCore) filename serializer codexUnlocks  =
         if not core.IsLogMonitorBatchReading then
             let fullPath = core.PluginStorageFolder + filename
-            let serialized = codexUnlocks |> serializeCodexUnlocks
+            let serialized = codexUnlocks |> serializer
             try
                 File.WriteAllText(fullPath, serialized)
             with
@@ -285,11 +314,12 @@ type Worker() =
         // Initialize interop and UI
         member this.Load core = 
             Core <- core
-
-            CodexUnlocks <- loadCodexUnlocks Core.PluginStorageFolder codexUnlocksFileName
             
             GridCollection.Add(buildNullRow)
             UI <- PluginUI(GridCollection)
+
+            CodexUnlocks <- deserializeFromFile Set.empty Core.PluginStorageFolder codexUnlocksFileName deserializeCodexUnlocks
+            InternalSettings <- deserializeFromFile InternalSettings Core.PluginStorageFolder internalSettingsFileName deserializeInteralSettings
 
 
         // Handle journal events
@@ -316,7 +346,7 @@ type Worker() =
                             Core.SendNotification(buildGeoPlanetNotification Settings.VerboseNotifications body.Volcanism body.Temp body.Count) |> ignore
                             GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
 
-                        GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks
+                        GeoBodies |> updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
 
                 | :? SAASignalsFound as sigs ->                   
                     // When signals are discovered through DSS, save/update them if they're geology and update the UI, display a notification
@@ -326,7 +356,7 @@ type Worker() =
                         let id = { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID }
                         GeoBodies <- GeoBodies.Add(id, buildSignalCountBody id sigs.BodyName s.Count CurrentRegion GeoBodies))
 
-                    GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks
+                    GeoBodies |> updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
 
                 | :? CodexEntry as codexEntry ->
                     // When something is scanned with the comp. scanner, save/update the result if it's geological, then update the UI
@@ -338,10 +368,10 @@ type Worker() =
 
                         if codexEntry.IsNewEntry then
                             CodexUnlocks <- CodexUnlocks |> Set.add { Signal = signal; Region = region }
-                            saveCodexUnlocks Core codexUnlocksFileName CodexUnlocks
+                            CodexUnlocks |> serializeToFile Core codexUnlocksFileName serializeCodexUnlocks 
 
                         GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
-                        GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks
+                        GeoBodies |> updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
                     | None -> ()
 
                 | :? FSDJump as jump ->
@@ -350,24 +380,29 @@ type Worker() =
                         let struct (x, y, z) = jump.StarPos
                         CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
                         CurrentSystem <- setCurrentSystem CurrentSystem jump.SystemAddress
-                        GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks
+                        GeoBodies |> updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
 
                 | :? Location as location ->
                     // Update current system when our location is updated, then update the UI
                     let struct (x, y, z) = location.StarPos
                     CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
                     CurrentSystem <- setCurrentSystem CurrentSystem location.SystemAddress
-                    GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks
+                    GeoBodies |> updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
 
                 | _ -> ()
 
         member this.LogMonitorStateChanged args =
-            // If data is being batch read (Read All), then wait until it's done before updating the UI
-            if LogMonitorStateChangedEventArgs.IsBatchRead args.NewState then
+            if args.NewState.HasFlag(LogMonitorState.Batch) then                // started read all
                 Core.ClearGrid(this, buildNullRow)
-            elif LogMonitorStateChangedEventArgs.IsBatchRead args.PreviousState then
-                GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks
-                saveCodexUnlocks Core codexUnlocksFileName CodexUnlocks
+            elif args.NewState.HasFlag(LogMonitorState.PreRead) then ()         // started preread
+            elif args.PreviousState.HasFlag(LogMonitorState.PreRead) then       // finished preread
+                GeoBodies |> updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+            elif args.PreviousState.HasFlag(LogMonitorState.Batch) then         // finished read all
+                InternalSettings <- { InternalSettings with HasReadAllBeenRun = true }
+                GeoBodies |> updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+                CodexUnlocks |> serializeToFile Core codexUnlocksFileName serializeCodexUnlocks
+                InternalSettings |> serializeToFile Core internalSettingsFileName serializeInternalSettings
+
 
         member this.Name with get() = "GeoPredictor"
         member this.Version with get() = Assembly.GetCallingAssembly().GetName().Version.ToString()
@@ -379,5 +414,5 @@ type Worker() =
                 Settings <- settings :?> Settings
 
                 // Update the UI if a setting that requires it has been changed by subscribing to event
-                Settings.NeedsUIUpdate.Add(fun () -> GeoBodies |> updateUI this Core Settings CurrentSystem CodexUnlocks)
+                Settings.NeedsUIUpdate.Add(fun () -> GeoBodies |> updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks)
             
