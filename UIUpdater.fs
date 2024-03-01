@@ -59,10 +59,8 @@ module UIUpdater =
                             Found = 
                                 match d with 
                                 | Matched -> predictionSuccess 
-                                | Predicted -> 
-                                    match codexUnlocks |> Set.contains { Signal = s; Region = body.Region } with
-                                    | true -> predictionUnknown 
-                                    | false -> predictionUnknown + newCodexEntry
+                                | Predicted -> predictionUnknown
+                                | CodexPredicted -> predictionUnknown + newCodexEntry
                                 | Unmatched -> "" 
                                 | Surprise -> predictionFailed                             
                             Type = Parser.toGeoSignalOut s; 

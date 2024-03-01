@@ -8,6 +8,8 @@ open System.Collections.ObjectModel
 open System.Reflection
 open EliteDangerousRegionMap
 
+type Notification = { Title:string; Verbose:string; Terse: string }
+
 type Worker() =
 
     // Mutable values for interop
@@ -34,22 +36,29 @@ type Worker() =
             | true -> newSystem
             | false -> oldSystem
 
+    let getPredictedGeos bodyType volcanism region codexUnlocks =
+        Predictor.getGeologyPredictions bodyType volcanism
+        |> List.map (fun p -> 
+            p, 
+            match codexUnlocks |> Set.contains { Signal = p; Region = region } with
+            | true -> Predicted 
+            | false -> CodexPredicted)
+        |> Map.ofList   
+
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
-    let buildScannedBody id name bodyType volcanism temp region bodies =
-        let predictedGeos = 
-            Predictor.getGeologyPredictions bodyType volcanism
-            |> List.map (fun p -> p, Predicted)
-            |> Map.ofList   
+    let buildScannedBody id name systemName bodyType volcanism temp region codexUnlocks bodies =
+        let shortName = name |> Parser.replace systemName "" |> Parser.trim
+        let predictedGeos = getPredictedGeos bodyType volcanism region codexUnlocks
 
         match bodies |> Map.tryFind(id) with
-        | Some body -> { body with Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp ; GeosFound = if body.GeosFound.IsEmpty then predictedGeos else body.GeosFound }
-        | None -> { Name = name; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = predictedGeos; Notified = false; Region = region }
+        | Some body -> { body with Name = name; ShortName = shortName; BodyType = bodyType; Volcanism = volcanism; Temp = temp ; GeosFound = if body.GeosFound.IsEmpty then predictedGeos else body.GeosFound }
+        | None -> { Name = name; ShortName = shortName; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = predictedGeos; Notified = false; Region = region }
 
     // If a body already exists, update its count of geological signal, otherwise create a new body
     let buildSignalCountBody id name count region bodies =
         match bodies |> Map.tryFind(id) with
         | Some body -> { (body:GeoBody) with Count = count }
-        | None -> { Name = name; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = count; GeosFound = Map.empty; Notified = false; Region = region }             
+        | None -> { Name = name; ShortName = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = count; GeosFound = Map.empty; Notified = false; Region = region }             
 
     // If a body already exists, and the type of geology has not already been scanned, add the geology; if no body, create a new one
     let buildFoundDetailBody id signal region bodies =
@@ -62,27 +71,44 @@ type Worker() =
                 | _ -> body
             | None -> { body with GeosFound = body.GeosFound |> Map.add signal Surprise }
         | None ->
-            { Name = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = Map.empty |> Map.add signal Unmatched; Notified = false; Region = region }
+            { Name = ""; ShortName = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = Map.empty |> Map.add signal Unmatched; Notified = false; Region = region }
     
     // Format notification text for output
-    let formatGeoPlanetNotification verbose volcanism temp count =
+    let buildGeoPlanetNotification shortBody volcanism temp count =
         let volcanismLowerCase = (Parser.toVolcanismOut volcanism).ToLower()
-        match (count <> 0, verbose) with
-        | true, true -> $"Landable body with {count} geological signals, and {volcanismLowerCase} at {floor (float temp)}K."
-        | true, false -> $"{count} geological signals found"
-        | false, true -> $"Landable body with geological signals, and {volcanismLowerCase} at {floor (float temp)}K. FSS or DSS for count."
-        | false, false -> "Geological signals found"
+        let title = match shortBody |> Parser.isNotNullOrEmpty with | true -> $"Body {shortBody}" | false -> "Geological Signals"
 
+        match count = 0 with
+        | true -> {
+            Title = title;
+            Verbose = $"Landable body with geological signals, and {volcanismLowerCase} at {floor (float temp)}K. FSS or DSS for count."
+            Terse = "Geological signals found" }
+        | false -> { 
+            Title = title; 
+            Verbose = $"Landable body with {count} geological signals, and {volcanismLowerCase} at {floor (float temp)}K."
+            Terse = $"{count} geological signals found" }
+
+    let buildNewCodexEntryNotification shortBody geosFound =
+        let possibleNewGeosText = 
+            geosFound             
+            |> Map.filter (fun _ s -> s = CodexPredicted)
+            |> Map.keys
+            |> Seq.map (fun s -> Parser.toGeoSignalOut s)
+            |> String.concat ", "
+
+        {   Title = match shortBody |> Parser.isNotNullOrEmpty with | true -> $"Body {shortBody}" | false -> "New Codex Geo";
+            Verbose = $"Possible new geological Codex entries are: {possibleNewGeosText}.";
+            Terse = "Possible new geological Codex entries."}
+    
     // Build a notification for found geological signals
-    let buildGeoPlanetNotification verbose volcanism temp count =
+    let buildNotificationArgs verbose notification =
         NotificationArgs (
-            Title = "Geological signals",
-            Detail = formatGeoPlanetNotification verbose volcanism temp count)
+            Title = notification.Title,
+            Detail = match verbose with | true -> notification.Verbose | false -> notification.Terse )
     
     //
     // Helpers for the interface functions that deal with mutable data
     //
-
     let updateUI worker =
         GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
 
@@ -113,18 +139,30 @@ type Worker() =
                             buildScannedBody 
                                 id 
                                 scan.BodyName 
+                                scan.StarSystem
                                 (Parser.toBodyType scan.PlanetClass) 
                                 (Parser.toVolcanism scan.Volcanism) 
                                 (scan.SurfaceTemperature * 1.0f<K>) 
                                 CurrentRegion
+                                CodexUnlocks
                                 GeoBodies
                             
                         match body.Notified || not Settings.NotifyOnGeoBody with
                         | true -> 
                             GeoBodies <- GeoBodies.Add(id, body)
                         | false ->
-                            Core.SendNotification(buildGeoPlanetNotification Settings.VerboseNotifications body.Volcanism body.Temp body.Count) |> ignore
+                            Core.SendNotification(
+                                buildGeoPlanetNotification body.ShortName body.Volcanism body.Temp body.Count
+                                |> buildNotificationArgs Settings.VerboseNotifications) 
+                            |> ignore
+
                             GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
+
+                        if body.GeosFound |> Map.exists (fun _ s -> s = CodexPredicted) then
+                            Core.SendNotification(
+                                buildNewCodexEntryNotification body.ShortName body.GeosFound
+                                |> buildNotificationArgs Settings.VerboseNotifications)
+                            |> ignore
                             
                         this |> updateUI
 

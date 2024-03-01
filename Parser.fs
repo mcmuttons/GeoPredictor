@@ -6,6 +6,9 @@ module Parser =
     let replace (original:string) replacement (string:string) =
         string.Replace(original, replacement)
 
+    let trim (string:string) =
+        string.Trim()
+
     let split (string:string) =
         string.Split ' '
 

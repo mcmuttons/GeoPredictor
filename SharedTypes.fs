@@ -116,12 +116,13 @@ type Volcanism = { Level:VolcanismLevel; Type:VolcanismType }
 // Has this geo been predicted, matched, or come as a complete surprise?
 type PredictionStatus =
     | Predicted
+    | CodexPredicted
     | Matched
     | Surprise
     | Unmatched
 
 // A body with geology
-type GeoBody = { Name:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:Map<GeologySignal,PredictionStatus>; Notified:bool; Region:Region }
+type GeoBody = { Name:string; ShortName:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:Map<GeologySignal,PredictionStatus>; Notified:bool; Region:Region }
 
 // A single codex entry
 type CodexUnit = { Signal:GeologySignal; Region:Region }
