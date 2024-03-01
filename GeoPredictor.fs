@@ -78,7 +78,13 @@ type Worker() =
         NotificationArgs (
             Title = "Geological signals",
             Detail = formatGeoPlanetNotification verbose volcanism temp count)
-            
+    
+    //
+    // Helpers for the interface functions that deal with mutable data
+    //
+
+    let updateUI worker =
+        GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
 
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
@@ -119,8 +125,8 @@ type Worker() =
                         | false ->
                             Core.SendNotification(buildGeoPlanetNotification Settings.VerboseNotifications body.Volcanism body.Temp body.Count) |> ignore
                             GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
-
-                        GeoBodies |> UIUpdater.updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+                            
+                        this |> updateUI
 
                 | :? SAASignalsFound as sigs ->                   
                     // When signals are discovered through DSS, save/update them if they're geology and update the UI, display a notification
@@ -130,7 +136,7 @@ type Worker() =
                         let id = { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID }
                         GeoBodies <- GeoBodies.Add(id, buildSignalCountBody id sigs.BodyName s.Count CurrentRegion GeoBodies))
 
-                    GeoBodies |> UIUpdater.updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+                    this |> updateUI
 
                 | :? CodexEntry as codexEntry ->
                     // When something is scanned with the comp. scanner, save/update the result if it's geological, then update the UI
@@ -145,7 +151,7 @@ type Worker() =
                             CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName FileSerializer.serializeCodexUnlocks 
 
                         GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
-                        GeoBodies |> UIUpdater.updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+                        this |> updateUI
                     | None -> ()
 
                 | :? FSDJump as jump ->
@@ -154,14 +160,14 @@ type Worker() =
                         let struct (x, y, z) = jump.StarPos
                         CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
                         CurrentSystem <- setCurrentSystem CurrentSystem jump.SystemAddress
-                        GeoBodies |> UIUpdater.updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+                        this |> updateUI
 
                 | :? Location as location ->
                     // Update current system when our location is updated, then update the UI
                     let struct (x, y, z) = location.StarPos
                     CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
                     CurrentSystem <- setCurrentSystem CurrentSystem location.SystemAddress
-                    GeoBodies |> UIUpdater.updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+                    this |> updateUI
 
                 | _ -> ()
 
@@ -170,10 +176,10 @@ type Worker() =
                 Core.ClearGrid(this, UIUpdater.buildNullRow)
             elif args.NewState.HasFlag(LogMonitorState.PreRead) then ()         // started preread
             elif args.PreviousState.HasFlag(LogMonitorState.PreRead) then       // finished preread
-                GeoBodies |> UIUpdater.updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+                this |> updateUI
             elif args.PreviousState.HasFlag(LogMonitorState.Batch) then         // finished read all
                 InternalSettings <- { InternalSettings with HasReadAllBeenRun = true }
-                GeoBodies |> UIUpdater.updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+                this |> updateUI
                 CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName FileSerializer.serializeCodexUnlocks
                 InternalSettings |> FileSerializer.serializeToFile Core internalSettingsFileName FileSerializer.serializeInternalSettings
 
@@ -188,5 +194,5 @@ type Worker() =
                 Settings <- settings :?> Settings
 
                 // Update the UI if a setting that requires it has been changed by subscribing to event
-                Settings.NeedsUIUpdate.Add(fun () -> GeoBodies |> UIUpdater.updateUI this Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks)
+                Settings.NeedsUIUpdate.Add(fun () -> this |> updateUI)
             
