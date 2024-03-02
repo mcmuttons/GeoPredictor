@@ -147,18 +147,18 @@ type Worker() =
                                 CodexUnlocks
                                 GeoBodies
                             
-                        match body.Notified || not Settings.NotifyOnGeoBody with
-                        | true -> 
-                            GeoBodies <- GeoBodies.Add(id, body)
-                        | false ->
+                        match not body.Notified && Settings.NotifyOnGeoBody with
+                        | true ->
                             Core.SendNotification(
                                 buildGeoPlanetNotification body.ShortName body.Volcanism body.Temp body.Count
                                 |> buildNotificationArgs Settings.VerboseNotifications) 
                             |> ignore
 
                             GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
+                        | false -> 
+                            GeoBodies <- GeoBodies.Add(id, body)
 
-                        if body.GeosFound |> Map.exists (fun _ s -> s = CodexPredicted) then
+                        if body.GeosFound |> Map.exists (fun _ s -> s = CodexPredicted) && Settings.NotifyOnNewGeoCodex then
                             Core.SendNotification(
                                 buildNewCodexEntryNotification body.ShortName body.GeosFound
                                 |> buildNotificationArgs Settings.VerboseNotifications)

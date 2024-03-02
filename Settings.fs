@@ -4,6 +4,7 @@ open Observatory.Framework
 
 type Settings() =
     let mutable notifyOnGeoBody = true
+    let mutable notifyOnNewGeoCodex = true
     let mutable verboseNotifications = true
     let mutable onlyShowCurrentSystem = true
     let mutable onlyShowWithScans = false
@@ -18,6 +19,12 @@ type Settings() =
     member this.NotifyOnGeoBody
         with get() = notifyOnGeoBody
         and set(setting) = notifyOnGeoBody <- setting
+
+    // Turn on and off notifications on predicted new Codex entries
+    [<SettingDisplayName("Notify on possible new codex entry  ")>]
+    member this.NotifyOnNewGeoCodex
+        with get() = notifyOnNewGeoCodex
+        and set(setting) = notifyOnNewGeoCodex <- setting
 
     // Verbose notifications
     [<SettingDisplayName("Verbose notifications  ")>]
