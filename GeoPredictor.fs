@@ -67,7 +67,7 @@ type Worker() =
             match body.GeosFound |> Map.tryFind(signal) with
             | Some geo -> 
                 match geo with
-                | Predicted -> { body with GeosFound = body.GeosFound |> Map.add signal Matched }
+                | Predicted | CodexPredicted -> { body with GeosFound = body.GeosFound |> Map.add signal Matched }
                 | _ -> body
             | None -> { body with GeosFound = body.GeosFound |> Map.add signal Surprise }
         | None ->
@@ -158,7 +158,7 @@ type Worker() =
                         | false -> 
                             GeoBodies <- GeoBodies.Add(id, body)
 
-                        if body.GeosFound |> Map.exists (fun _ s -> s = CodexPredicted) && Settings.NotifyOnNewGeoCodex then
+                        if body.GeosFound |> Map.exists (fun _ s -> s = CodexPredicted) && Settings.NotifyOnNewGeoCodex && not body.Notified then
                             Core.SendNotification(
                                 buildNewCodexEntryNotification body.ShortName body.GeosFound
                                 |> buildNotificationArgs Settings.VerboseNotifications)

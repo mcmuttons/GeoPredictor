@@ -7,8 +7,7 @@ open System.Text.Json
 module FileSerializer =
 
     // Type specifically for serialization since the JsonSerializer doesn't play well with discriminated unions
-    type private SerializableCodexData = { Sig:string; Reg:string }
-
+    type SerializableCodexData = { Sig:string; Reg:string }
 
     // Serialize and deserialize the codex unlocks. A little ugly since JsonSerializer isn't a fan of discriminated unions
     let deserializeCodexUnlocks (json:string) =
@@ -17,9 +16,11 @@ module FileSerializer =
 
     let serializeCodexUnlocks codexUnlocks =
         let serializableCodexUnlocks =
-            codexUnlocks |> Set.map (fun cu -> { Sig = Parser.toGeoSignalOut cu.Signal; Reg = Parser.toRegionOut cu.Region })
+            codexUnlocks 
+                |> Set.map (fun cu -> { Sig = Parser.toGeoSignalOut cu.Signal; Reg = Parser.toRegionOut cu.Region })
                            
-        JsonSerializer.Serialize(serializableCodexUnlocks)
+        let serialized = JsonSerializer.Serialize serializableCodexUnlocks 
+        serialized
 
     // Serialize and deserialize internal settings
     let deserializeInteralSettings (json:string) =

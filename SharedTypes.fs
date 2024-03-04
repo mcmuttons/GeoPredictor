@@ -126,3 +126,52 @@ type GeoBody = { Name:string; ShortName:string; BodyType:BodyType; Volcanism:Vol
 
 // A single codex entry
 type CodexUnit = { Signal:GeologySignal; Region:Region }
+
+// Materials
+type Material =
+    | Carbon
+    | Vanadium
+    | Niobium
+    | Yttrium
+    | Phosphorus
+    | Chromium
+    | Molybdenum
+    | Technetium
+    | Sulphur
+    | Manganese
+    | Cadmium
+    | Ruthenium
+    | Iron
+    | Zinc
+    | Tin
+    | Selenium
+    | Nickel
+    | Germanium
+    | Tungsten
+    | Tellurium
+    | Rhenium
+    | Arsenic
+    | Mercury
+    | Polonium
+    | Lead
+    | Zirconium
+    | Boron
+    | Antimony
+
+type MaterialGrade =
+    | Grade1
+    | Grade2
+    | Grade3
+    | Grade4
+    | Grade5
+
+type MaterialCategory =
+    | Category1
+    | Category2
+    | Category3
+    | Category4
+    | Category5
+    | Category6
+    | Category7
+
+
