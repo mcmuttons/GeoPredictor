@@ -195,6 +195,71 @@ module Parser =
         | TheVoid -> "The Void"
         | UnknownRegion region -> $"Unmatched region: {region}!"
 
+    // Parse materials
+    let toMaterial percent name =
+        match name with
+        | "carbon" -> { MaterialName = Carbon; Grade = Grade1; Category = Category1; Percent = percent }
+        | "vanadium" -> { MaterialName = Vanadium; Grade = Grade2; Category = Category1; Percent = percent }
+        | "niobium" -> { MaterialName = Niobium; Grade = Grade3; Category = Category1; Percent = percent }
+        | "yttrium" -> { MaterialName = Yttrium; Grade = Grade4; Category = Category1; Percent = percent }
+        | "phosphorus" -> { MaterialName = Phosphorus; Grade = Grade1; Category = Category2; Percent = percent }
+        | "chromium" -> { MaterialName = Chromium; Grade = Grade2; Category = Category2; Percent = percent }
+        | "molybdenum" -> { MaterialName = Molybdenum; Grade = Grade3; Category = Category2; Percent = percent }
+        | "technetium" -> { MaterialName = Technetium; Grade = Grade4; Category = Category2; Percent = percent }
+        | "sulphur" -> { MaterialName = Sulphur; Grade = Grade1; Category = Category3; Percent = percent }
+        | "manganese" -> { MaterialName = Manganese; Grade = Grade2; Category = Category3; Percent = percent }
+        | "cadmium" -> { MaterialName = Cadmium; Grade = Grade3; Category = Category3; Percent = percent }
+        | "ruthenium" -> { MaterialName = Ruthenium; Grade = Grade4; Category = Category3; Percent = percent }
+        | "iron" -> { MaterialName = Iron; Grade = Grade1; Category = Category4; Percent = percent }
+        | "zinc" -> { MaterialName = Zinc; Grade = Grade2; Category = Category4; Percent = percent }
+        | "tin" -> { MaterialName = Tin; Grade = Grade3; Category = Category4; Percent = percent }
+        | "selenium" -> { MaterialName = Selenium; Grade = Grade4; Category = Category4; Percent = percent }
+        | "nickel" -> { MaterialName = Nickel; Grade = Grade1; Category = Category5; Percent = percent }
+        | "germanium" -> { MaterialName = Germanium; Grade = Grade2; Category = Category5; Percent = percent }
+        | "tungsten" -> { MaterialName = Tungsten; Grade = Grade3; Category = Category5; Percent = percent }
+        | "tellurium" -> { MaterialName = Tellurium; Grade = Grade4; Category = Category5; Percent = percent }
+        | "rhenium" -> { MaterialName = Rhenium; Grade = Grade1; Category = Category6; Percent = percent }
+        | "arsenic" -> { MaterialName = Arsenic; Grade = Grade2; Category = Category6; Percent = percent }
+        | "mercury" -> { MaterialName = Mercury; Grade = Grade3; Category = Category6; Percent = percent }
+        | "polonium" -> { MaterialName = Polonium; Grade = Grade4; Category = Category6; Percent = percent }
+        | "lead" -> { MaterialName = Lead; Grade = Grade1; Category = Category7; Percent = percent }
+        | "zirconium" -> { MaterialName = Zirconium; Grade = Grade2; Category = Category7; Percent = percent }
+        | "boron" -> { MaterialName = Boron; Grade = Grade3; Category = Category7; Percent = percent }
+        | "antimony" -> { MaterialName = Antimony; Grade = Grade4; Category = Category7; Percent = percent }
+        | _ -> { MaterialName = UnknownMaterial name; Grade = UnknownGrade; Category = UnknownCategory; Percent = percent}
+
+    let toMaterialOut material =
+        match material with
+        | Carbon -> "Carbon"
+        | Vanadium -> "Vanadium"
+        | Niobium -> "Niobium"
+        | Yttrium -> "Yttrium"
+        | Phosphorus -> "Phosphorus"
+        | Chromium -> "Chromium"
+        | Molybdenum -> "Molybdenum"
+        | Technetium -> "Technetium"
+        | Sulphur -> "Sulphur"
+        | Manganese -> "Manganese"
+        | Cadmium -> "Cadmium"
+        | Ruthenium -> "Ruthenium"
+        | Iron -> "Iron"
+        | Zinc -> "Zinc"
+        | Tin -> "Tin"
+        | Selenium -> "Selenium"
+        | Nickel -> "Nickel"
+        | Germanium -> "Germanium"
+        | Tungsten -> "Tungsten"
+        | Tellurium -> "Tellurium"
+        | Rhenium -> "Rhenium"
+        | Arsenic -> "Arsenic"
+        | Mercury -> "Mercury"
+        | Polonium -> "Polonium"
+        | Lead -> "Lead"
+        | Zirconium -> "Zirconium"
+        | Boron -> "Boron"
+        | Antimony -> "Antimony"
+        | UnknownMaterial unknown -> $"Unknown: {unknown}"
+
     // Parse geological signal type
     let toGeoSignalOut signal =
         match signal with
@@ -367,4 +432,5 @@ module Parser =
         "$Codex_Ent_Geysers_SilicateVapourGeysers_Name;";
         "$Codex_Ent_Fumarole_SilicateVapourGeysers_Name;";
         "$Codex_Ent_Gas_Vents_SilicateVapourGeysers_Name;"]
+
 

@@ -122,13 +122,15 @@ type PredictionStatus =
     | Unmatched
 
 // A body with geology
-type GeoBody = { Name:string; ShortName:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:Map<GeologySignal,PredictionStatus>; Notified:bool; Region:Region }
+type GeoBody = { BodyName:string; ShortName:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:Map<GeologySignal,PredictionStatus>; Notified:bool; Region:Region }
 
 // A single codex entry
 type CodexUnit = { Signal:GeologySignal; Region:Region }
 
 // Materials
-type Material =
+type [<Measure>] percent
+
+type MaterialName =
     | Carbon
     | Vanadium
     | Niobium
@@ -157,13 +159,14 @@ type Material =
     | Zirconium
     | Boron
     | Antimony
+    | UnknownMaterial of string
 
 type MaterialGrade =
     | Grade1
     | Grade2
     | Grade3
     | Grade4
-    | Grade5
+    | UnknownGrade
 
 type MaterialCategory =
     | Category1
@@ -173,5 +176,8 @@ type MaterialCategory =
     | Category5
     | Category6
     | Category7
+    | UnknownCategory
+
+type Material = { MaterialName:MaterialName; Grade:MaterialGrade; Category:MaterialCategory; Percent:float32<percent> }
 
 

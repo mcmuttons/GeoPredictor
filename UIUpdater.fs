@@ -53,7 +53,7 @@ module UIUpdater =
                 body.GeosFound
                     |> Map.toList
                     |> List.map (fun (s,d) -> 
-                        {   Body = body.Name; 
+                        {   Body = body.BodyName; 
                             BodyType = ""; 
                             Count = ""; 
                             Found = 
@@ -71,7 +71,7 @@ module UIUpdater =
     // Build a grid entry for a body, with detail entries if applicable
     let buildGridEntry codexUnlocks body =   
         let firstRow = {
-            Body = body.Name;
+            Body = body.BodyName;
             BodyType = Parser.toBodyTypeOut body.BodyType;
             Count = 
                 match body.Count with 
