@@ -46,13 +46,17 @@ type Worker() =
         |> Map.ofList   
 
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
-    let buildScannedBody id name systemName bodyType volcanism temp region codexUnlocks bodies =
-        let shortName = name |> Parser.replace systemName "" |> Parser.trim
+    let buildScannedBody id (scan:Scan) region codexUnlocks bodies =
+        let shortName = scan.BodyName |> Parser.replace scan.StarSystem "" |> Parser.trim
+        let bodyType = Parser.toBodyType scan.PlanetClass
+        let volcanism = Parser.toVolcanism scan.Volcanism
+        let temp = scan.SurfaceTemperature * 1.0f<K>
+
         let predictedGeos = getPredictedGeos bodyType volcanism region codexUnlocks
 
         match bodies |> Map.tryFind(id) with
-        | Some body -> { body with BodyName = name; ShortName = shortName; BodyType = bodyType; Volcanism = volcanism; Temp = temp ; GeosFound = if body.GeosFound.IsEmpty then predictedGeos else body.GeosFound }
-        | None -> { BodyName = name; ShortName = shortName; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = predictedGeos; Notified = false; Region = region }
+        | Some body -> { body with BodyName = scan.BodyName; ShortName = shortName; BodyType = bodyType; Volcanism = volcanism; Temp = temp ; GeosFound = if body.GeosFound.IsEmpty then predictedGeos else body.GeosFound }
+        | None -> { BodyName = scan.BodyName; ShortName = shortName; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = predictedGeos; Notified = false; Region = region }
 
     // If a body already exists, update its count of geological signal, otherwise create a new body
     let buildSignalCountBody id name count region bodies =
@@ -138,11 +142,7 @@ type Worker() =
                         let body = 
                             buildScannedBody 
                                 id 
-                                scan.BodyName 
-                                scan.StarSystem
-                                (Parser.toBodyType scan.PlanetClass) 
-                                (Parser.toVolcanism scan.Volcanism) 
-                                (scan.SurfaceTemperature * 1.0f<K>) 
+                                scan
                                 CurrentRegion
                                 CodexUnlocks
                                 GeoBodies
