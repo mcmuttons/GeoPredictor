@@ -51,18 +51,49 @@ type Worker() =
         let bodyType = Parser.toBodyType scan.PlanetClass
         let volcanism = Parser.toVolcanism scan.Volcanism
         let temp = scan.SurfaceTemperature * 1.0f<K>
+        let materials = 
+            scan.Materials 
+            |> Seq.map (fun m -> Parser.toMaterial (m.Percent * 1.0f<percent>) m.Name)
 
         let predictedGeos = getPredictedGeos bodyType volcanism region codexUnlocks
 
         match bodies |> Map.tryFind(id) with
-        | Some body -> { body with BodyName = scan.BodyName; ShortName = shortName; BodyType = bodyType; Volcanism = volcanism; Temp = temp ; GeosFound = if body.GeosFound.IsEmpty then predictedGeos else body.GeosFound }
-        | None -> { BodyName = scan.BodyName; ShortName = shortName; BodyType = bodyType; Volcanism = volcanism; Temp = temp; Count = 0; GeosFound = predictedGeos; Notified = false; Region = region }
+        | Some body -> { 
+            body with 
+                BodyName = scan.BodyName; 
+                ShortName = shortName; 
+                BodyType = bodyType; 
+                Volcanism = volcanism; 
+                Temp = temp ; 
+                GeosFound = if body.GeosFound.IsEmpty then predictedGeos else body.GeosFound;
+                Materials = materials }
+        | None -> { 
+                BodyName = scan.BodyName; 
+                ShortName = shortName; 
+                BodyType = bodyType; 
+                Volcanism = volcanism; 
+                Temp = temp; 
+                Count = 0; 
+                GeosFound = predictedGeos; 
+                Notified = false; 
+                Region = region; 
+                Materials = materials }
 
     // If a body already exists, update its count of geological signal, otherwise create a new body
     let buildSignalCountBody id name count region bodies =
         match bodies |> Map.tryFind(id) with
         | Some body -> { (body:GeoBody) with Count = count }
-        | None -> { BodyName = name; ShortName = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = count; GeosFound = Map.empty; Notified = false; Region = region }             
+        | None -> { 
+            BodyName = name; 
+            ShortName = ""; 
+            BodyType = BodyTypeNotYetSet; 
+            Volcanism = Parser.toVolcanismNotYetSet; 
+            Temp = 0f<K>; 
+            Count = count; 
+            GeosFound = Map.empty; 
+            Notified = false; 
+            Region = region; 
+            Materials = Seq.empty }             
 
     // If a body already exists, and the type of geology has not already been scanned, add the geology; if no body, create a new one
     let buildFoundDetailBody id signal region bodies =
@@ -74,8 +105,17 @@ type Worker() =
                 | Predicted | CodexPredicted -> { body with GeosFound = body.GeosFound |> Map.add signal Matched }
                 | _ -> body
             | None -> { body with GeosFound = body.GeosFound |> Map.add signal Surprise }
-        | None ->
-            { BodyName = ""; ShortName = ""; BodyType = BodyTypeNotYetSet; Volcanism = Parser.toVolcanismNotYetSet; Temp = 0f<K>; Count = 0; GeosFound = Map.empty |> Map.add signal Unmatched; Notified = false; Region = region }
+        | None -> { 
+            BodyName = ""; 
+            ShortName = ""; 
+            BodyType = BodyTypeNotYetSet; 
+            Volcanism = Parser.toVolcanismNotYetSet; 
+            Temp = 0f<K>; 
+            Count = 0; 
+            GeosFound = Map.empty |> Map.add signal Unmatched; 
+            Notified = false; 
+            Region = region; 
+            Materials = Seq.empty }
     
     // Format notification text for output
     let buildGeoPlanetNotification shortBody volcanism temp count =

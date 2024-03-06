@@ -121,9 +121,6 @@ type PredictionStatus =
     | Surprise
     | Unmatched
 
-// A body with geology
-type GeoBody = { BodyName:string; ShortName:string; BodyType:BodyType; Volcanism:Volcanism; Temp:float32<K>; Count:int; GeosFound:Map<GeologySignal,PredictionStatus>; Notified:bool; Region:Region }
-
 // A single codex entry
 type CodexUnit = { Signal:GeologySignal; Region:Region }
 
@@ -180,4 +177,15 @@ type MaterialCategory =
 
 type Material = { MaterialName:MaterialName; Grade:MaterialGrade; Category:MaterialCategory; Percent:float32<percent> }
 
-
+// A body with geology
+type GeoBody = { 
+    BodyName:string; 
+    ShortName:string; 
+    BodyType:BodyType; 
+    Volcanism:Volcanism; 
+    Temp:float32<K>; 
+    Count:int; 
+    GeosFound:Map<GeologySignal,PredictionStatus>; 
+    Notified:bool; 
+    Region:Region;
+    Materials:Material seq }
