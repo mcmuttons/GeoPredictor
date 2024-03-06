@@ -5,11 +5,11 @@ open Observatory.Framework.Interfaces
 module UIUpdater =
 
     // An row of data to be displayed in the UI
-    type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyType: string; Volcanism:string; Temp:string; Region:string }
+    type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyType: string; Materials: string; Volcanism:string; Temp:string; Region:string }
 
     // Null row for initializing the UI
-    let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Volcanism = null; Temp = null; Region = null }
-    let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Volcanism = ""; Temp = ""; Region = "" }
+    let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Materials = null; Volcanism = null; Temp = null; Region = null }
+    let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Materials = ""; Volcanism = ""; Temp = ""; Region = "" }
 
     // Version for output
     let externalVersion = "GeoPredictor v1.4"
@@ -53,9 +53,8 @@ module UIUpdater =
                 body.GeosFound
                     |> Map.toList
                     |> List.map (fun (s,d) -> 
-                        {   Body = body.BodyName; 
-                            BodyType = ""; 
-                            Count = ""; 
+                        { emptyRow with                          
+                            Body = body.BodyName; 
                             Found = 
                                 match d with 
                                 | Matched -> predictionSuccess 
@@ -63,25 +62,32 @@ module UIUpdater =
                                 | CodexPredicted -> predictionUnknown + newCodexEntry
                                 | Unmatched -> "" 
                                 | Surprise -> predictionFailed                             
-                            Type = Parser.toGeoSignalOut s; 
-                            Volcanism = ""; 
-                            Temp = "";
-                            Region = ""}))
+                            Type = Parser.toGeoSignalOut s; }))
 
     // Build a grid entry for a body, with detail entries if applicable
-    let buildGridEntry codexUnlocks body =   
-        let firstRow = {
-            Body = body.BodyName;
-            BodyType = Parser.toBodyTypeOut body.BodyType;
-            Count = 
-                match body.Count with 
-                | 0 -> "FSS/DSS" 
-                | _ -> body.Count.ToString();
-            Found = ""
-            Type = "";
-            Volcanism = Parser.toVolcanismOut body.Volcanism;
-            Temp = (floor (float body.Temp)).ToString() + "K"
-            Region = Parser.toRegionOut body.Region}
+    let filterMaterialsForOutput (settings:Settings) materials =
+        materials
+        |> if settings.HideGrade1Materials then Seq.filter(fun m -> not (m.Grade = Grade1)) else id
+        |> if settings.HideGrade2Materials then Seq.filter(fun m -> not (m.Grade = Grade2)) else id
+        |> if settings.HideGrade3Materials then Seq.filter(fun m -> not (m.Grade = Grade3)) else id
+        |> if settings.HideGrade4Materials then Seq.filter(fun m -> not (m.Grade = Grade4)) else id
+        |> Seq.sortByDescending (fun m -> m.Grade)
+        |> Seq.map (fun m -> sprintf "%s (%.1f%%)" (Parser.toMaterialOut settings.UseChemicalSymbols m.MaterialName) m.Percent)
+        |> String.concat ", "
+
+    let buildGridEntry settings codexUnlocks body =   
+        let firstRow = 
+            { emptyRow with
+                Body = body.BodyName;
+                BodyType = Parser.toBodyTypeOut body.BodyType;
+                Count = 
+                    match body.Count with 
+                    | 0 -> "FSS/DSS" 
+                    | _ -> body.Count.ToString();
+                Materials = body.Materials |> filterMaterialsForOutput settings
+                Volcanism = Parser.toVolcanismOut body.Volcanism;
+                Temp = (floor (float body.Temp)).ToString() + "K"
+                Region = Parser.toRegionOut body.Region}
 
         body
         |> buildGeoDetailEntries codexUnlocks
@@ -118,5 +124,5 @@ module UIUpdater =
     let updateUI worker core settings hasReadAllBeenRun currentSys codexUnlocks bodies = 
         bodies 
         |> filterBodiesForOutput settings currentSys
-        |> Seq.collect (fun body -> buildGridEntry codexUnlocks body.Value)
+        |> Seq.collect (fun body -> buildGridEntry settings codexUnlocks body.Value)
         |> updateGrid worker core hasReadAllBeenRun
