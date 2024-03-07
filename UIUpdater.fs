@@ -15,10 +15,11 @@ module UIUpdater =
     let externalVersion = "GeoPredictor v1.4"
 
     // Symbols for output
-    let predictionSuccess = "\u2714"                                        // Heavy check mark
-    let predictionUnknown = "\u2754"                                        // White question mark
-    let predictionFailed = "\u274C"                                         // Red X
-    let newCodexEntry = "\U0001F537"                                        // Blue diamond
+    let predictionSuccess = "\u2714"    // Heavy check mark
+    let predictionUnknown = "\u2754"    // White question mark
+    let predictionFailed = "\u274C"     // Red X
+    let newCodexEntry = "\U0001F537"    // Blue diamond
+    let warning = "\u2757"              // Red exclamation mark
 
     // Filter bodies to those with registered comp. scans
     let filterForShowOnlyWithScans onlyScans bodies =
@@ -78,16 +79,23 @@ module UIUpdater =
     let buildGridEntry settings codexUnlocks body =   
         let firstRow = 
             { emptyRow with
-                Body = body.BodyName;
-                BodyType = Parser.toBodyTypeOut body.BodyType;
+                Body = body.BodyName
+                BodyType = Parser.toBodyTypeOut body.BodyType
                 Count = 
                     match body.Count with 
                     | 0 -> "FSS/DSS" 
-                    | _ -> body.Count.ToString();
+                    | _ -> 
+                        match body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise) with
+                        | true -> $"{body.Count} ({body.Count + 1}?)"
+                        | false -> body.Count.ToString()
+                Type = 
+                    match body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise) with
+                    | true -> $"{warning}Possible additional geo{warning}"
+                    | false -> ""
                 Materials = body.Materials |> filterMaterialsForOutput settings
-                Volcanism = Parser.toVolcanismOut body.Volcanism;
+                Volcanism = Parser.toVolcanismOut body.Volcanism
                 Temp = (floor (float body.Temp)).ToString() + "K"
-                Region = Parser.toRegionOut body.Region}
+                Region = Parser.toRegionOut body.Region }
 
         body
         |> buildGeoDetailEntries codexUnlocks
