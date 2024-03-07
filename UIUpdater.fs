@@ -110,11 +110,11 @@ module UIUpdater =
             "Go make some coffee."
             "I dunno."
             ""
-            "ALSO NOTE: If you're missing"
-            "logs, you might get false"
-            "Codex positives. If you scan"
-            "those, it should remember"
-            "from then on. :)" ]
+            "ALSO NOTE: If your Elite game"
+            "logs are incomplete, you might"
+            "get false Codex positives. If"
+            "you scan the geo again, it"
+            "should be remembered :)" ]
         |> String.concat "\n"
 
     // Repaint the UI
