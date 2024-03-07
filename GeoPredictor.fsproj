@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RegionMap\RegionMap.csproj" />
+    <ProjectReference Include="RegionMap\RegionMap.csproj" />
   </ItemGroup>
 
   <ItemGroup>
