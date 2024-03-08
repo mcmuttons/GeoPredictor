@@ -84,10 +84,9 @@ module UIUpdater =
                 Count = 
                     match body.Count with 
                     | 0 -> "FSS/DSS" 
-                    | _ -> 
-                        match body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise) with
-                        | true -> $"{body.Count} ({body.Count + 1}?)"
-                        | false -> body.Count.ToString()
+                    | _ when body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise ) -> $"{body.Count} ({body.Count + 1}?)"
+                    | _ when body.Count <> body.GeosFound.Count -> $"{body.Count} ({body.GeosFound.Count})"
+                    | _ -> body.Count.ToString()
                 Type = 
                     match body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise) with
                     | true -> $"{warning}Possible additional geo{warning}"
