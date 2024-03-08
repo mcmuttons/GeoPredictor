@@ -116,6 +116,16 @@ type Worker() =
             Notified = false; 
             Region = region; 
             Materials = Seq.empty }
+
+    // Set all bodies that have a signal/region combo set as CodexPredicted to Predicted
+    // Used when a new Codex entry has been scanned, and all other finds of it should lose their codex predicted status
+    let updateAllPredictedCodexEntriesForNewFind signal region bodies =
+        bodies |> Map.map (
+            fun _ body -> 
+                match body.GeosFound |> Map.tryFind(signal) with
+                | Some p when p = CodexPredicted && body.Region = region -> { body with GeosFound = body.GeosFound |> Map.add signal Predicted }
+                | _ -> body)
+        
     
     // Format notification text for output
     let buildGeoPlanetNotification shortBody volcanism temp count =
@@ -224,11 +234,13 @@ type Worker() =
                         let signal = Parser.toGeoSignalFromJournal codexEntry.Name
                         let region = Parser.toRegion codexEntry.Region
 
+                        GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
+
                         if codexEntry.IsNewEntry then
                             CodexUnlocks <- CodexUnlocks |> Set.add { Signal = signal; Region = region }
                             CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName FileSerializer.serializeCodexUnlocks 
+                            GeoBodies <- GeoBodies |> updateAllPredictedCodexEntriesForNewFind signal region
 
-                        GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
                         this |> updateUI
                     | None -> ()
 
