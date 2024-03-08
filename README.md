@@ -8,7 +8,7 @@ GeoPredictor tracks what geological signal types you've discovered, and predicts
 ## Understanding the data
 The meaning of the columns are as follows:
 - **Body:** The full name of the body that we're looking at
-- **Count:** How many signals are reported to be found on this body. In the case of a surprising result, there might be more.
+- **Count:** How many signals are reported to be found on this body. In the case of a surprising result, there might be more. If there is a second number in parentheses (like `3 (4)`), then there will be more geological features on this body than Elite's DSS count indicates.
 - **Found:** Icons indicating the status of the current geology:
   - ❔: A geological feature has been predicted, but not yet verified
   - 🔷: A new geological codex entry has been predicted, but not yet verified
