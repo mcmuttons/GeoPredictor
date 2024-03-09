@@ -1,14 +1,14 @@
 # GeoPredictor Plugin for Observatory Core
 **Note:** This plugin requires [Observatory Core](https://github.com/Xjph/ObservatoryCore) to work, so if you don't have that, start there! :)
 
-[Direct download of GeoPredictor.eop](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.4/GeoPredictor.eop)
+[Direct download of GeoPredictor.eop](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.4.1/GeoPredictor.eop)
 
 GeoPredictor tracks what geological signal types you've discovered, and predicts which you can expect to find before landing on a body. It will also let you know if the geological feature will be new to your Codex. Mistakes can happen, feel free to post an issue here if they do. :)
 
 ## Understanding the data
 The meaning of the columns are as follows:
 - **Body:** The full name of the body that we're looking at
-- **Count:** How many signals are reported to be found on this body. In the case of a surprising result, there might be more.
+- **Count:** How many signals are reported to be found on this body. In the case of a surprising result, there might be more. If there is a second number in parentheses (like `3 (4)`), then there will be more geological features on this body than Elite's DSS count indicates.
 - **Found:** Icons indicating the status of the current geology:
   - ❔: A geological feature has been predicted, but not yet verified
   - 🔷: A new geological codex entry has been predicted, but not yet verified
@@ -41,44 +41,44 @@ You can find the settings in Observatory by selecting `Core` on the left side, a
 
 Note that `Read All` also adheres to these settings, so you might have to change them to see everything that has been read.
 
-### Notify on new geological body
+#### Notify on new geological body
 This turns on and off whether a standard Observatory notification should be shown when a geological body is scanned.
 
 Default: **on**
 
-### Notify on possible new codex entry
+#### Notify on possible new codex entry
 This turns on and off whether a new codex entry notification should be shown when a geological body is scanned
 
 Default **on**
 
-### Verbose notifications
+#### Verbose notifications
 This turns on and off whether notifcation text should be verbose or terse. Especially for those using voice with their notifications, terse might be best. Either way, all data scanned ends up in the list view on the GeoPredictor tab.
 
 Default **on**
 
-### Show only current system
+#### Show only current system
 This will only show bodies with geology on the in the system you're in. Otherwise you'll see all the bodies since this Observatory session started. 
 
 Default: **on**
 
-### Show only bodies with scans
+#### Show only bodies with scans
 This will only show bodies where at least one geological item has been scanned on the surface. This mostly used for exporting reports, but perhaps you'll find the view useful as well. :)
 
 Default: **off**
 
-### Show only bodies with failed prediction
+#### Show only bodies with failed prediction
 This will only show bodies where GeoPredictor has found something it didn't predict. 
 
 Default: **off**
 
-### Hide grade 1 materials
+#### Hide grade 1 materials
 This will hide all grade 1 materials on a body from the materials list. These are the most common. All data is saved, so if you turn it off, they'll be there again.
 
 Default: **off**
 
 This setting also exists for grades 2, 3 and 4 (which are the rarest materials)
 
-### Use chemical symbol insteead of element name
+#### Use chemical symbol insteead of element name
 This makes the materials list much more compact by showing for example `Cu` instead of `Copper`, or `Pb` instead of `Lead`. If you prefer full names, turn this off.
 
 Default: **on**
