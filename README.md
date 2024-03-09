@@ -41,44 +41,44 @@ You can find the settings in Observatory by selecting `Core` on the left side, a
 
 Note that `Read All` also adheres to these settings, so you might have to change them to see everything that has been read.
 
-### Notify on new geological body
+#### Notify on new geological body
 This turns on and off whether a standard Observatory notification should be shown when a geological body is scanned.
 
 Default: **on**
 
-### Notify on possible new codex entry
+#### Notify on possible new codex entry
 This turns on and off whether a new codex entry notification should be shown when a geological body is scanned
 
 Default **on**
 
-### Verbose notifications
+#### Verbose notifications
 This turns on and off whether notifcation text should be verbose or terse. Especially for those using voice with their notifications, terse might be best. Either way, all data scanned ends up in the list view on the GeoPredictor tab.
 
 Default **on**
 
-### Show only current system
+#### Show only current system
 This will only show bodies with geology on the in the system you're in. Otherwise you'll see all the bodies since this Observatory session started. 
 
 Default: **on**
 
-### Show only bodies with scans
+#### Show only bodies with scans
 This will only show bodies where at least one geological item has been scanned on the surface. This mostly used for exporting reports, but perhaps you'll find the view useful as well. :)
 
 Default: **off**
 
-### Show only bodies with failed prediction
+#### Show only bodies with failed prediction
 This will only show bodies where GeoPredictor has found something it didn't predict. 
 
 Default: **off**
 
-### Hide grade 1 materials
+#### Hide grade 1 materials
 This will hide all grade 1 materials on a body from the materials list. These are the most common. All data is saved, so if you turn it off, they'll be there again.
 
 Default: **off**
 
 This setting also exists for grades 2, 3 and 4 (which are the rarest materials)
 
-### Use chemical symbol insteead of element name
+#### Use chemical symbol insteead of element name
 This makes the materials list much more compact by showing for example `Cu` instead of `Copper`, or `Pb` instead of `Lead`. If you prefer full names, turn this off.
 
 Default: **on**
