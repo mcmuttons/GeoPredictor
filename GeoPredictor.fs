@@ -51,10 +51,7 @@ type Worker() =
         let bodyType = Parser.toBodyType scan.PlanetClass
         let volcanism = Parser.toVolcanism scan.Volcanism
         let temp = scan.SurfaceTemperature * 1.0f<K>
-        let materials = 
-            scan.Materials 
-            |> Seq.map (fun m -> Parser.toMaterial (m.Percent * 1.0f<percent>) m.Name)
-
+        let materials = scan.Materials |> Seq.map (fun m -> Parser.toMaterial (m.Percent * 1.0f<percent>) m.Name)
         let predictedGeos = getPredictedGeos bodyType volcanism region codexUnlocks
 
         match bodies |> Map.tryFind(id) with
@@ -152,7 +149,7 @@ type Worker() =
 
         {   Title = match shortBody |> Parser.isNotNullOrEmpty with | true -> $"Body {shortBody}" | false -> "New Codex Geo";
             Verbose = $"Possible new geological Codex entries are: {possibleNewGeosText}.";
-            Terse = "Possible new geological Codex entries."}
+            Terse = "Possible new geological Codex entries." }
     
     // Build a notification for found geological signals
     let buildNotificationArgs verbose notification =

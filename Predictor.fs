@@ -7,7 +7,7 @@ module Predictor =
         | MetalRichBody -> 
             match volcanism.Type with
             | IronMagma -> [ SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal ]
-            | SilicateMagma -> [ SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal ]
+            | SilicateMagma -> [ SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal; SilicateVapourGasVentSignal ]
             | SilicateVapourGeysers -> [ SilicateVapourFumaroleSignal; SilicateVapourGasVentSignal ]
             | _ -> [ UnexpectedSignal $"Unexpected volcanism: {Parser.toVolcanismOut volcanism}" ]
         | HighMetalContentBody ->
