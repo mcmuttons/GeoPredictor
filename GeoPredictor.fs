@@ -125,18 +125,19 @@ type Worker() =
         
     
     // Format notification text for output
-    let buildGeoPlanetNotification shortBody volcanism temp count =
+    let buildGeoPlanetNotification shortBody volcanism count bodyType =
         let volcanismLowerCase = (Parser.toVolcanismOut volcanism).ToLower()
+        let bodyTypeText = Parser.toBodyTypeOut bodyType
         let title = match shortBody |> Parser.isNotNullOrEmpty with | true -> $"Body {shortBody}" | false -> "Geological Signals"
 
         match count = 0 with
         | true -> {
             Title = title;
-            Verbose = $"Landable body with geological signals, and {volcanismLowerCase} at {floor (float temp)}K. FSS or DSS for count."
+            Verbose = $"{bodyTypeText} body with geological signals, and {volcanismLowerCase}. FSS or DSS for count."
             Terse = "Geological signals found" }
         | false -> { 
             Title = title; 
-            Verbose = $"Landable body with {count} geological signals, and {volcanismLowerCase} at {floor (float temp)}K."
+            Verbose = $"{bodyTypeText} body with {count} geological signals, and {volcanismLowerCase}."
             Terse = $"{count} geological signals found" }
 
     let buildNewCodexEntryNotification shortBody geosFound =
@@ -197,7 +198,7 @@ type Worker() =
                         match not body.Notified && Settings.NotifyOnGeoBody with
                         | true ->
                             Core.SendNotification(
-                                buildGeoPlanetNotification body.ShortName body.Volcanism body.Temp body.Count
+                                buildGeoPlanetNotification body.ShortName body.Volcanism body.Count body.BodyType
                                 |> buildNotificationArgs Settings.VerboseNotifications) 
                             |> ignore
 
