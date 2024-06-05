@@ -9,13 +9,14 @@ open System.Reflection
 open EliteDangerousRegionMap
 
 type Notification = { Title:string; Verbose:string; Terse: string }
+type System = { ID:uint64; Name:string }
 
 type Worker() =
 
     // Mutable values for interop
     let mutable (Core:IObservatoryCore) = null                  // For interacting with Observatory Core
     let mutable (UI:PluginUI) = null                            // For updating the Observatory UI
-    let mutable CurrentSystem = 0UL                             // ID of the system we're currently in
+    let mutable CurrentSystem = { ID = 0UL; Name = ""}          // ID of the system we're currently in
     let mutable CurrentRegion = UnknownRegion "Uninitialized"   // Region we're currently in
     let mutable GeoBodies = Map.empty                           // Map of all scanned bodies since the Observatory session began
     let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
@@ -31,10 +32,10 @@ type Worker() =
     let internalSettingsFileName = "GeoPredictor-InternalSettings.json"     // Filename to save internal settings in
 
     // Update current system if it has changed
-    let setCurrentSystem oldSystem newSystem = 
-        match oldSystem = 0UL || oldSystem <> newSystem with
-            | true -> newSystem
-            | false -> oldSystem
+    let setCurrentSystem oldSys newSys = 
+        match oldSys.ID = 0UL || oldSys.ID <> newSys.ID with
+            | true -> newSys
+            | false -> oldSys
 
     let getPredictedGeos bodyType volcanism region codexUnlocks =
         Predictor.getGeologyPredictions bodyType volcanism
@@ -46,10 +47,10 @@ type Worker() =
         |> Map.ofList   
 
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
-    let buildScannedBody id (scan:Scan) region codexUnlocks bodies =
+    let buildScannedBody id (scan:Scan) region system codexUnlocks bodies =
         let shortName = 
             scan.BodyName 
-            |> Parser.replace scan.StarSystem "" 
+            |> Parser.replace system.Name "" 
             |> Parser.trim
         let bodyType = Parser.toBodyType scan.PlanetClass
         let volcanism = Parser.toVolcanism scan.Volcanism
@@ -165,7 +166,7 @@ type Worker() =
     // Helpers for the interface functions that deal with mutable data
     //
     let updateUI worker =
-        GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem CodexUnlocks
+        GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem.ID CodexUnlocks
 
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
@@ -195,6 +196,7 @@ type Worker() =
                                 id 
                                 scan
                                 CurrentRegion
+                                CurrentSystem
                                 CodexUnlocks
                                 GeoBodies
                             
@@ -250,14 +252,14 @@ type Worker() =
                     if not ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) then 
                         let struct (x, y, z) = jump.StarPos
                         CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
-                        CurrentSystem <- setCurrentSystem CurrentSystem jump.SystemAddress
+                        CurrentSystem <- setCurrentSystem CurrentSystem { ID = jump.SystemAddress; Name = jump.StarSystem }
                         this |> updateUI
 
                 | :? Location as location ->
                     // Update current system when our location is updated, then update the UI
                     let struct (x, y, z) = location.StarPos
                     CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
-                    CurrentSystem <- setCurrentSystem CurrentSystem location.SystemAddress
+                    CurrentSystem <- setCurrentSystem CurrentSystem { ID = location.SystemAddress; Name = location.StarSystem }
                     this |> updateUI
 
                 | _ -> ()
