@@ -47,7 +47,10 @@ type Worker() =
 
     // If a body already exists, update its details with name, volcanism and temperature, otherwise create a new body    
     let buildScannedBody id (scan:Scan) region codexUnlocks bodies =
-        let shortName = scan.BodyName |> Parser.replace scan.StarSystem "" |> Parser.trim
+        let shortName = 
+            scan.BodyName 
+            |> Parser.replace scan.StarSystem "" 
+            |> Parser.trim
         let bodyType = Parser.toBodyType scan.PlanetClass
         let volcanism = Parser.toVolcanism scan.Volcanism
         let temp = scan.SurfaceTemperature * 1.0f<K>
