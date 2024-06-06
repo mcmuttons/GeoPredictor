@@ -18,6 +18,7 @@ type Worker() =
     let mutable (UI:PluginUI) = null                            // For updating the Observatory UI
     let mutable CurrentSystem = { ID = 0UL; Name = ""}          // ID of the system we're currently in
     let mutable CurrentRegion = UnknownRegion "Uninitialized"   // Region we're currently in
+    let mutable IsValidVersion = false                          // Is the log from Odyssey or not
     let mutable GeoBodies = Map.empty                           // Map of all scanned bodies since the Observatory session began
     let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
     let mutable Settings = new Settings()                       // Settings for Observatory
@@ -161,6 +162,11 @@ type Worker() =
         NotificationArgs (
             Title = notification.Title,
             Detail = match verbose with | true -> notification.Verbose | false -> notification.Terse )
+
+    // Check if the version supports modern signals
+    let getIfValidVersion (version:string) odyssey =
+        version.StartsWith("4.") || odyssey
+        
     
     //
     // Helpers for the interface functions that deal with mutable data
@@ -187,9 +193,17 @@ type Worker() =
         // Handle journal events
         member this.JournalEvent event =
             match (event:JournalBase) with 
+                | :? LoadGame as load ->
+                    // When the game starts, get the current game version
+                    IsValidVersion <- getIfValidVersion load.GameVersion load.Odyssey
+                    
+                | :? FileHeader as newFile ->
+                    // When a new file is being read, override the file version
+                    IsValidVersion <- getIfValidVersion newFile.GameVersion newFile.Odyssey
+
                 | :? Scan as scan ->                
                     // When a body is scanned (FSS, Proximity or NAV beacon), save/update it if it's landable and has volcanism and update the UI
-                    if scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty then
+                    if IsValidVersion && scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty then
                         let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
                         let body = 
                             buildScannedBody 
@@ -221,13 +235,14 @@ type Worker() =
 
                 | :? SAASignalsFound as sigs ->                   
                     // When signals are discovered through DSS, save/update them if they're geology and update the UI, display a notification
-                    sigs.Signals 
-                    |> Seq.filter (fun s -> s.Type = geoSignalType)
-                    |> Seq.iter (fun s ->
-                        let id = { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID }
-                        GeoBodies <- GeoBodies.Add(id, buildSignalCountBody id sigs.BodyName s.Count CurrentRegion GeoBodies))
+                    if IsValidVersion then
+                        sigs.Signals 
+                        |> Seq.filter (fun s -> s.Type = geoSignalType)
+                        |> Seq.iter (fun s ->
+                            let id = { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID }
+                            GeoBodies <- GeoBodies.Add(id, buildSignalCountBody id sigs.BodyName s.Count CurrentRegion GeoBodies))
 
-                    this |> updateUI
+                        this |> updateUI
 
                 | :? CodexEntry as codexEntry ->
                     // When something is scanned with the comp. scanner, save/update the result if it's geological, then update the UI
@@ -237,7 +252,8 @@ type Worker() =
                         let signal = Parser.toGeoSignalFromJournal codexEntry.Name
                         let region = Parser.toRegion codexEntry.Region
 
-                        GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
+                        if IsValidVersion then
+                            GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
 
                         if codexEntry.IsNewEntry then
                             CodexUnlocks <- CodexUnlocks |> Set.add { Signal = signal; Region = region }
