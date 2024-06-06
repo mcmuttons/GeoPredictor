@@ -133,7 +133,7 @@ type Worker() =
     let buildGeoPlanetNotification shortBody volcanism count bodyType =
         let volcanismLowerCase = (Parser.toVolcanismOut volcanism).ToLower()
         let bodyTypeText = Parser.toBodyTypeOut bodyType
-        let title = match shortBody |> Parser.isNotNullOrEmpty with | true -> $"Body {shortBody}" | false -> "Geological Signals"
+        let title = match shortBody |> Parser.isNotNullOrEmpty with | true -> $"Geology: Body {shortBody}" | false -> "Geological Signals"
 
         match count = 0 with
         | true -> {
