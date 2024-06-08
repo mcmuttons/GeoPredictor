@@ -12,7 +12,7 @@ module UIUpdater =
     let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Materials = ""; Volcanism = ""; Temp = ""; Region = "" }
 
     // Version for output
-    let externalVersion = "GeoPredictor v1.4.2"
+    let externalVersion = "GeoPredictor v1.4.4"
 
     // Symbols for output
     let predictionSuccess = "\u2714"    // Heavy check mark

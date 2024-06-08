@@ -165,7 +165,9 @@ type Worker() =
 
     // Check if the version supports modern signals
     let getIfValidVersion (version:string) odyssey =
-        version.StartsWith("4.") || odyssey
+        match version with
+        | null -> odyssey
+        | _ -> version.StartsWith("4.") || odyssey
         
     
     //
