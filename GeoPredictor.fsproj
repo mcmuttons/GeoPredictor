@@ -30,7 +30,7 @@
 
   <ItemGroup>
     <Reference Include="ObservatoryFramework">
-      <HintPath>..\ObservatoryCore\ObservatoryFramework\bin\Release\net6.0\ObservatoryFramework.dll</HintPath>
+      <HintPath>..\ObservatoryCore\ObservatoryFramework\bin\Release\net8.0\ObservatoryFramework.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
