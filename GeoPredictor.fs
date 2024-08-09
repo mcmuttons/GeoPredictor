@@ -134,7 +134,7 @@ type Worker() =
     let buildGeoPlanetNotification shortBody volcanism count bodyType =
         let volcanismLowerCase = (Parser.toVolcanismOut volcanism).ToLower()
         let bodyTypeText = Parser.toBodyTypeOut bodyType
-        let title = match shortBody |> Parser.isNotNullOrEmpty with | true -> $"Geology: Body {shortBody}" | false -> "Geological Signals"
+        let title = match shortBody |> Parser.isNotNullOrEmpty with | true -> $"Body {shortBody}" | false -> "Geological Signals"
 
         match count = 0 with
         | true -> {
@@ -155,8 +155,8 @@ type Worker() =
             |> String.concat ", "
 
         {   Title = match shortBody |> Parser.isNotNullOrEmpty with | true -> $"Body {shortBody}" | false -> "New Codex Geo";
-            Verbose = $"Possible new geological Codex entries are: {possibleNewGeosText}.";
-            Terse = "Possible new geological Codex entries." }
+            Verbose = $"New geological Codex entries: {possibleNewGeosText}.";
+            Terse = "New geological Codex entries." }
     
     // Build a notification for found geological signals
     let buildNotificationArgs bodyID verbose notification =
