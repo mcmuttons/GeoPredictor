@@ -296,7 +296,7 @@ type Worker() =
 
 
         member this.Name with get() = "GeoPredictor"
-        member this.Version with get() = Assembly.GetCallingAssembly().GetName().Version.ToString()
+        member this.Version with get() = Assembly.GetExecutingAssembly().GetName().Version.ToString()
         member this.PluginUI with get() = UI
 
         member this.Settings 

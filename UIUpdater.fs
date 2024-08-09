@@ -1,6 +1,7 @@
 ﻿namespace GeoPredictor
 
 open Observatory.Framework.Interfaces
+open System.Reflection
 
 module UIUpdater =
 
@@ -12,7 +13,7 @@ module UIUpdater =
     let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Materials = ""; Volcanism = ""; Temp = ""; Region = "" }
 
     // Version for output
-    let externalVersion = "GeoPredictor v1.4.4"
+    let externalVersion = "GeoPredictor " + Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
     // Symbols for output
     let predictionSuccess = "\u2714"    // Heavy check mark
