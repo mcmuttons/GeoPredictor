@@ -4,6 +4,7 @@ open FSharp.Data.UnitSystems.SI.UnitSymbols
 open Observatory.Framework
 open Observatory.Framework.Files.Journal
 open Observatory.Framework.Interfaces
+open System
 open System.Collections.ObjectModel
 open System.Reflection
 open EliteDangerousRegionMap
@@ -158,10 +159,14 @@ type Worker() =
             Terse = "Possible new geological Codex entries." }
     
     // Build a notification for found geological signals
-    let buildNotificationArgs verbose notification =
+    let buildNotificationArgs bodyID verbose notification =
         NotificationArgs (
             Title = notification.Title,
-            Detail = match verbose with | true -> notification.Verbose | false -> notification.Terse )
+            Sender = "GeoPredictor",
+            CoalescingId = Nullable bodyID,
+            ExtendedDetails = notification.Verbose,
+            Detail = match verbose with | true -> notification.Verbose | false -> notification.Terse)
+            
 
     // Check if the version supports modern signals
     let getIfValidVersion (version:string) odyssey =
@@ -220,7 +225,7 @@ type Worker() =
                         | true ->
                             Core.SendNotification(
                                 buildGeoPlanetNotification body.ShortName body.Volcanism body.Count body.BodyType
-                                |> buildNotificationArgs Settings.VerboseNotifications) 
+                                |> buildNotificationArgs scan.BodyID Settings.VerboseNotifications) 
                             |> ignore
 
                             GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
@@ -230,7 +235,7 @@ type Worker() =
                         if body.GeosFound |> Map.exists (fun _ s -> s = CodexPredicted) && Settings.NotifyOnNewGeoCodex && not body.Notified then
                             Core.SendNotification(
                                 buildNewCodexEntryNotification body.ShortName body.GeosFound
-                                |> buildNotificationArgs Settings.VerboseNotifications)
+                                |> buildNotificationArgs scan.BodyID Settings.VerboseNotifications)
                             |> ignore
                             
                         this |> updateUI
