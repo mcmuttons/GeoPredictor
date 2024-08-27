@@ -3,6 +3,7 @@
 open Observatory.Framework
 open Observatory.Framework.Interfaces
 open System.Reflection
+open System.Windows.Forms
 
 module UIUpdater =
 
@@ -49,6 +50,7 @@ module UIUpdater =
     let newCodexEntry = "\U0001F537"    // Blue diamond
     let warning = "\u2757"              // Red exclamation mark
 
+ 
     // Filter bodies to those with registered comp. scans
     let filterForShowOnlyWithScans onlyScans bodies =
         match onlyScans with

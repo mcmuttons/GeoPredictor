@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
@@ -20,6 +21,7 @@
     <Compile Include="FileSerializer.fs" />
     <Compile Include="Predictor.fs" />
     <Compile Include="Settings.fs" />
+    <Compile Include="DisplayPanel.fs" />
     <Compile Include="UIUpdater.fs" />
     <Compile Include="GeoPredictor.fs" />
   </ItemGroup>
