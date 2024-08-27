@@ -1,12 +1,39 @@
 ﻿namespace GeoPredictor
 
+open Observatory.Framework
 open Observatory.Framework.Interfaces
 open System.Reflection
 
 module UIUpdater =
 
     // An row of data to be displayed in the UI
-    type UIOutputRow = { Body:string; Count:string; Found:string; Type:string; BodyType: string; Materials: string; Volcanism:string; Temp:string; Region:string }
+    type UIOutputRow = { 
+        [<ColumnSuggestedWidth(250)>]
+        Body:string;
+        
+        [<ColumnSuggestedWidth(85)>]
+        Count:string; 
+
+        [<ColumnSuggestedWidth(85)>]
+        Found:string; 
+
+        [<ColumnSuggestedWidth(250)>]
+        Type:string; 
+
+        [<ColumnSuggestedWidth(150)>]
+        BodyType: string; 
+
+        [<ColumnSuggestedWidth(300)>]
+        Materials: string; 
+
+        [<ColumnSuggestedWidth(250)>]
+        Volcanism:string; 
+
+        [<ColumnSuggestedWidth(85)>]
+        Temp:string; 
+
+        [<ColumnSuggestedWidth(100)>]
+        Region:string }
 
     // Null row for initializing the UI
     let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Materials = null; Volcanism = null; Temp = null; Region = null }
