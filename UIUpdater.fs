@@ -41,7 +41,7 @@ module UIUpdater =
     let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Materials = ""; Volcanism = ""; Temp = ""; Region = "" }
 
     // Version for output
-    let externalVersion = "GeoPredictor " + Assembly.GetExecutingAssembly().GetName().Version.ToString()
+    let externalVersion = "GeoPredictor " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3)
 
     // Symbols for output
     let predictionSuccess = "\u2714"    // Heavy check mark

@@ -301,7 +301,7 @@ type Worker() =
 
 
         member this.Name with get() = "GeoPredictor"
-        member this.Version with get() = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+        member this.Version with get() = Assembly.GetExecutingAssembly().GetName().Version.ToString(3)
         member this.PluginUI with get() = UI
         member this.ColumnSorter with get() = Observatory.Framework.Sorters.NoOpColumnSorter()
 
