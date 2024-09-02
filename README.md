@@ -1,7 +1,9 @@
 # GeoPredictor Plugin for Observatory Core
 **Note:** This plugin requires [Observatory Core](https://github.com/Xjph/ObservatoryCore) to work, so if you don't have that, start there! :)
 
-[Direct download of GeoPredictor.eop](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.4.5/GeoPredictor.eop)
+[Direct download of GeoPredictor.eop if you're using ObservatoryCore v1.0.0 or newer](https://github.com/mcmuttons/GeoPredictor/releases/download/v.2.0.0/GeoPredictor.eop)
+
+[Direct download of GeoPredictor.eop if you're using an older ObservatoryCore version (no longer updated)](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.4.5/GeoPredictor.eop)
 
 GeoPredictor tracks what geological signal types you've discovered, and predicts which you can expect to find before landing on a body. It will also let you know if the geological feature will be new to your Codex. Mistakes can happen, feel free to post an issue here if they do. :)
 
