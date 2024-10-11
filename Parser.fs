@@ -213,7 +213,7 @@ module Parser =
         | "iron" -> { MaterialName = Iron; Grade = Grade1; Category = Category4; Percent = percent }
         | "zinc" -> { MaterialName = Zinc; Grade = Grade2; Category = Category4; Percent = percent }
         | "tin" -> { MaterialName = Tin; Grade = Grade3; Category = Category4; Percent = percent }
-        | "selenium" -> { MaterialName = Selenium; Grade = Grade4; Category = Category4; Percent = percent }
+        | "selenium" -> { MaterialName = Selenium; Grade = Grade2; Category = Category4; Percent = percent }    // while Selenium is technically G4, it's G2 in terms of gathering
         | "nickel" -> { MaterialName = Nickel; Grade = Grade1; Category = Category5; Percent = percent }
         | "germanium" -> { MaterialName = Germanium; Grade = Grade2; Category = Category5; Percent = percent }
         | "tungsten" -> { MaterialName = Tungsten; Grade = Grade3; Category = Category5; Percent = percent }
