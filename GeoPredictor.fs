@@ -305,6 +305,15 @@ type Worker() =
         member this.PluginUI with get() = UI
         member this.ColumnSorter with get() = Observatory.Framework.Sorters.NoOpColumnSorter()
 
+        member this.AboutInfo with get() = AboutInfo (
+            AuthorName = "mcmuttons",
+            Description = "Predicts the type and number geological signals on a body after scanning, and tracks whether or not they're in your personal codex or not. Provides filterable info about which materials can be found on the bodies with geological signals to help surface prospecting.",
+            ShortName = "GeoPredictor",
+            FullName = "GeoPredictor",
+            Links = ResizeArray<AboutLink> [ AboutLink ( "GeoPredictor on Github, where you can find documentation and the latest version", "https://github.com/mcmuttons/GeoPredictor" ) ]
+            )
+            
+
         member this.Settings 
             with get() = Settings
             and set(settings) = 
