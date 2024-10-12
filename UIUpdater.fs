@@ -148,14 +148,11 @@ module UIUpdater =
 
     // Repaint the UI
     let updateGrid worker (core:IObservatoryCore) hasReadAllBeenRun gridRows =
-        match core.IsLogMonitorBatchReading with
-            | true -> ()
-            | false ->
-                core.ClearGrid(worker, buildNullRow)
-                core.AddGridItem(worker, { emptyRow with Body = externalVersion })
-                if not hasReadAllBeenRun then
-                    core.AddGridItem(worker, { emptyRow with Type = firstRunMessage })
-                core.AddGridItems(worker, Seq.cast(gridRows))
+        core.ClearGrid(worker, buildNullRow)
+        core.AddGridItem(worker, { emptyRow with Body = externalVersion })
+        if not hasReadAllBeenRun then
+            core.AddGridItem(worker, { emptyRow with Type = firstRunMessage })
+        core.AddGridItems(worker, Seq.cast(gridRows))
 
     // Filter bodies for display, turn them into a single list of entries, then update the UI
     let updateUI worker core settings hasReadAllBeenRun currentSys codexUnlocks bodies = 

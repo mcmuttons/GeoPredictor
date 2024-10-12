@@ -179,7 +179,9 @@ type Worker() =
     // Helpers for the interface functions that deal with mutable data
     //
     let updateUI worker =
-        GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem.ID CodexUnlocks
+        match Core.IsLogMonitorBatchReading with
+            | true -> ()
+            | false ->  GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem.ID CodexUnlocks
 
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
