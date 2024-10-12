@@ -19,7 +19,7 @@ type Worker() =
     let mutable (UI:PluginUI) = null                            // For updating the Observatory UI
     let mutable CurrentSystem = { ID = 0UL; Name = ""}          // ID of the system we're currently in
     let mutable CurrentRegion = UnknownRegion "Uninitialized"   // Region we're currently in
-    let mutable IsValidVersion = false                          // Is the log from Odyssey or not
+    let mutable IsValidEliteVersion = false                          // Is the log from Odyssey or not
     let mutable GeoBodies = Map.empty                           // Map of all scanned bodies since the Observatory session began
     let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
     let mutable Settings = new Settings()                       // Settings for Observatory
@@ -169,7 +169,7 @@ type Worker() =
             
 
     // Check if the version supports modern signals
-    let getIfValidVersion (version:string) odyssey =
+    let getIfValidEliteVersion (version:string) odyssey =
         match version with
         | null -> odyssey
         | _ -> version.StartsWith("4.") || odyssey
@@ -202,15 +202,15 @@ type Worker() =
             match (event:JournalBase) with 
                 | :? LoadGame as load ->
                     // When the game starts, get the current game version
-                    IsValidVersion <- getIfValidVersion load.GameVersion load.Odyssey
+                    IsValidEliteVersion <- getIfValidEliteVersion load.GameVersion load.Odyssey
                     
                 | :? FileHeader as newFile ->
                     // When a new file is being read, override the file version
-                    IsValidVersion <- getIfValidVersion newFile.GameVersion newFile.Odyssey
+                    IsValidEliteVersion <- getIfValidEliteVersion newFile.GameVersion newFile.Odyssey
 
                 | :? Scan as scan ->                
                     // When a body is scanned (FSS, Proximity or NAV beacon), save/update it if it's landable and has volcanism and update the UI
-                    if IsValidVersion && scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty then
+                    if IsValidEliteVersion && scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty then
                         let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
                         let body = 
                             buildScannedBody 
@@ -242,7 +242,7 @@ type Worker() =
 
                 | :? SAASignalsFound as sigs ->                   
                     // When signals are discovered through DSS, save/update them if they're geology and update the UI, display a notification
-                    if IsValidVersion then
+                    if IsValidEliteVersion then
                         sigs.Signals 
                         |> Seq.filter (fun s -> s.Type = geoSignalType)
                         |> Seq.iter (fun s ->
@@ -259,7 +259,7 @@ type Worker() =
                         let signal = Parser.toGeoSignalFromJournal codexEntry.Name
                         let region = Parser.toRegion codexEntry.Region
 
-                        if IsValidVersion then
+                        if IsValidEliteVersion then
                             GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
 
                         if codexEntry.IsNewEntry then
