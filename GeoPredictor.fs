@@ -311,8 +311,7 @@ type Worker() =
             ShortName = "GeoPredictor",
             FullName = "GeoPredictor",
             Links = ResizeArray<AboutLink> [ AboutLink ( "GeoPredictor on Github, where you can find documentation and the latest version", "https://github.com/mcmuttons/GeoPredictor" ) ]
-            )
-            
+            )       
 
         member this.Settings 
             with get() = Settings
