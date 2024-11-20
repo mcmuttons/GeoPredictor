@@ -275,14 +275,14 @@ type Worker() =
                 | :? FSDJump as jump ->
                     // Update current system after an FSD jump, then update the UI
                     if not ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) then 
-                        let struct (x, y, z) = jump.StarPos
+                        let struct (x, y, z) = (jump.StarPos.x, jump.StarPos.y, jump.StarPos.z)
                         CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
                         CurrentSystem <- setCurrentSystem CurrentSystem { ID = jump.SystemAddress; Name = jump.StarSystem }
                         this |> updateUI
 
                 | :? Location as location ->
                     // Update current system when our location is updated, then update the UI
-                    let struct (x, y, z) = location.StarPos
+                    let struct (x, y, z) = (location.StarPos.x, location.StarPos.y, location.StarPos.z)
                     CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
                     CurrentSystem <- setCurrentSystem CurrentSystem { ID = location.SystemAddress; Name = location.StarSystem }
                     this |> updateUI
