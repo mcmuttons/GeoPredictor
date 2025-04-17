@@ -19,7 +19,7 @@ type Worker() =
     let mutable (UI:PluginUI) = null                            // For updating the Observatory UI
     let mutable CurrentSystem = { ID = 0UL; Name = ""}          // ID of the system we're currently in
     let mutable CurrentRegion = UnknownRegion "Uninitialized"   // Region we're currently in
-    let mutable IsValidEliteVersion = false                          // Is the log from Odyssey or not
+    let mutable IsValidEliteVersion = false                     // Is the log from Odyssey or not
     let mutable GeoBodies = Map.empty                           // Map of all scanned bodies since the Observatory session began
     let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
     let mutable Settings = new Settings()                       // Settings for Observatory
@@ -32,6 +32,7 @@ type Worker() =
     let geoSignalType = "$SAA_SignalType_Geological;"                       // Journal value for a geological signal
     let codexUnlocksFileName = "GeoPredictor-CodexUnlocks.json"             // Filename to save codex status in
     let internalSettingsFileName = "GeoPredictor-InternalSettings.json"     // Filename to save internal settings in
+    let settingsVersion = Version(1,0)                                      // Version of the settings file
 
     // Update current system if it has changed
     let setCurrentSystem oldSys newSys = 
@@ -192,11 +193,12 @@ type Worker() =
         member this.Load core = 
             Core <- core
 
-            CodexUnlocks <- FileSerializer.deserializeFromFile Set.empty Core.PluginStorageFolder codexUnlocksFileName FileSerializer.deserializeCodexUnlocks
             InternalSettings <- FileSerializer.deserializeFromFile InternalSettings Core.PluginStorageFolder internalSettingsFileName FileSerializer.deserializeInteralSettings
+            if not InternalSettings.HasReadAllBeenRun || InternalSettings.Version < Version(1,0) then 
+                InternalSettings <- { InternalSettings with HasReadAllBeenRun = false; Version = settingsVersion }
+            else
+                CodexUnlocks <- FileSerializer.deserializeFromFile Set.empty Core.PluginStorageFolder codexUnlocksFileName FileSerializer.deserializeCodexUnlocks
 
-            if InternalSettings.Version < Version(1,0) then InternalSettings <- { InternalSettings with HasReadAllBeenRun = false; Version = Version(1,0) }
-            
             GridCollection.Add(UIUpdater.buildNullRow)
             UI <- PluginUI(GridCollection)
 
