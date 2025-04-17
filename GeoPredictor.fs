@@ -26,7 +26,7 @@ type Worker() =
     let mutable CodexUnlocks = Set.empty                        // Set of all codex entries unlocked so far
 
     let mutable InternalSettings =                              // Initialize internal settings that don't get exposed to Observatory
-        { HasReadAllBeenRun = false }
+        { HasReadAllBeenRun = false; Version = Version(0,0) }
 
     // Immutable internal values
     let geoSignalType = "$SAA_SignalType_Geological;"                       // Journal value for a geological signal
@@ -191,12 +191,15 @@ type Worker() =
         // Initialize interop and UI
         member this.Load core = 
             Core <- core
+
+            CodexUnlocks <- FileSerializer.deserializeFromFile Set.empty Core.PluginStorageFolder codexUnlocksFileName FileSerializer.deserializeCodexUnlocks
+            InternalSettings <- FileSerializer.deserializeFromFile InternalSettings Core.PluginStorageFolder internalSettingsFileName FileSerializer.deserializeInteralSettings
+
+            if InternalSettings.Version < Version(1,0) then InternalSettings <- { InternalSettings with HasReadAllBeenRun = false; Version = Version(1,0) }
             
             GridCollection.Add(UIUpdater.buildNullRow)
             UI <- PluginUI(GridCollection)
 
-            CodexUnlocks <- FileSerializer.deserializeFromFile Set.empty Core.PluginStorageFolder codexUnlocksFileName FileSerializer.deserializeCodexUnlocks
-            InternalSettings <- FileSerializer.deserializeFromFile InternalSettings Core.PluginStorageFolder internalSettingsFileName FileSerializer.deserializeInteralSettings
 
 
         // Handle journal events
@@ -265,6 +268,14 @@ type Worker() =
                             GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
 
                         if codexEntry.IsNewEntry then
+                            //let updatedUnlocks = 
+                            //    match CodexUnlocks |> Map.tryFind Commander with
+                            //    | Some unlocks -> unlocks |> Set.add { Signal = signal; Region = region }
+                            //    | None -> Set.empty |> Set.add { Signal = signal; Region = region } 
+
+                            //CodexUnlocks <- CodexUnlocks |> Map.add Commander updatedUnlocks
+
+
                             CodexUnlocks <- CodexUnlocks |> Set.add { Signal = signal; Region = region }
                             CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName FileSerializer.serializeCodexUnlocks 
                             GeoBodies <- GeoBodies |> updateAllPredictedCodexEntriesForNewFind signal region
@@ -296,7 +307,7 @@ type Worker() =
             elif args.PreviousState.HasFlag(LogMonitorState.PreRead) then       // finished preread
                 this |> updateUI
             elif args.PreviousState.HasFlag(LogMonitorState.Batch) then         // finished read all
-                InternalSettings <- { InternalSettings with HasReadAllBeenRun = true }
+                InternalSettings <- { InternalSettings with HasReadAllBeenRun = true } 
                 this |> updateUI
                 CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName FileSerializer.serializeCodexUnlocks
                 InternalSettings |> FileSerializer.serializeToFile Core internalSettingsFileName FileSerializer.serializeInternalSettings
