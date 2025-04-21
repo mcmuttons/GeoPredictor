@@ -27,6 +27,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FSharp.SystemTextJson" Version="1.3.13" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="RegionMap\RegionMap.csproj" />
   </ItemGroup>
 

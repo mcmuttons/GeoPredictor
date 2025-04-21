@@ -23,7 +23,8 @@ type Worker() =
     let mutable GeoBodies = Map.empty                           // Map of all scanned bodies since the Observatory session began
     let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
     let mutable Settings = new Settings()                       // Settings for Observatory
-    let mutable CodexUnlocks = Set.empty                        // Set of all codex entries unlocked so far
+    let mutable CodexUnlocks = Map.empty                        // Set of all codex entries unlocked so far
+    let mutable CurrentCommander = ""                                  // Commander name for the current journal file
 
     let mutable InternalSettings =                              // Initialize internal settings that don't get exposed to Observatory
         { HasReadAllBeenRun = false; Version = Version(0,0) }
@@ -193,11 +194,12 @@ type Worker() =
         member this.Load core = 
             Core <- core
 
-            InternalSettings <- FileSerializer.deserializeFromFile InternalSettings Core.PluginStorageFolder internalSettingsFileName FileSerializer.deserializeInteralSettings
+            InternalSettings <- FileSerializer.deserializeFromFile<InternalSettings> InternalSettings Core.PluginStorageFolder internalSettingsFileName
+
             if not InternalSettings.HasReadAllBeenRun || InternalSettings.Version < Version(1,0) then 
                 InternalSettings <- { InternalSettings with HasReadAllBeenRun = false; Version = settingsVersion }
             else
-                CodexUnlocks <- FileSerializer.deserializeFromFile Set.empty Core.PluginStorageFolder codexUnlocksFileName FileSerializer.deserializeCodexUnlocks
+                CodexUnlocks <- FileSerializer.deserializeFromFile<Map<string,Set<CodexUnit>>> Map.empty Core.PluginStorageFolder codexUnlocksFileName
 
             GridCollection.Add(UIUpdater.buildNullRow)
             UI <- PluginUI(GridCollection)
@@ -210,6 +212,7 @@ type Worker() =
                 | :? LoadGame as load ->
                     // When the game starts, get the current game version
                     IsValidEliteVersion <- getIfValidEliteVersion load.GameVersion load.Odyssey
+                    CurrentCommander <- load.Commander
                     
                 | :? FileHeader as newFile ->
                     // When a new file is being read, override the file version
@@ -219,13 +222,17 @@ type Worker() =
                     // When a body is scanned (FSS, Proximity or NAV beacon), save/update it if it's landable and has volcanism and update the UI
                     if IsValidEliteVersion && scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty then
                         let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
+                        let unlocks = 
+                            match CodexUnlocks |> Map.tryFind CurrentCommander with
+                            | Some unlocks -> unlocks
+                            | None -> Set.empty
                         let body = 
                             buildScannedBody 
                                 id 
                                 scan
                                 CurrentRegion
                                 CurrentSystem
-                                CodexUnlocks
+                                unlocks
                                 GeoBodies
                             
                         match not body.Notified && Settings.NotifyOnGeoBody with
@@ -270,16 +277,17 @@ type Worker() =
                             GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
 
                         if codexEntry.IsNewEntry then
-                            //let updatedUnlocks = 
-                            //    match CodexUnlocks |> Map.tryFind Commander with
-                            //    | Some unlocks -> unlocks |> Set.add { Signal = signal; Region = region }
-                            //    | None -> Set.empty |> Set.add { Signal = signal; Region = region } 
+                            let unlock = { Signal = signal; Region = region }
+                            let updatedUnlocks = 
+                                match CodexUnlocks |> Map.tryFind CurrentCommander with
+                                | Some unlocks -> 
+                                    match unlocks |> Set.contains unlock with
+                                    | true -> unlocks
+                                    | false -> unlocks |> Set.add unlock
+                                | None -> Set.empty |> Set.add { Signal = signal; Region = region } 
 
-                            //CodexUnlocks <- CodexUnlocks |> Map.add Commander updatedUnlocks
-
-
-                            CodexUnlocks <- CodexUnlocks |> Set.add { Signal = signal; Region = region }
-                            CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName FileSerializer.serializeCodexUnlocks 
+                            CodexUnlocks <- CodexUnlocks |> Map.add CurrentCommander updatedUnlocks
+                            CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName 
                             GeoBodies <- GeoBodies |> updateAllPredictedCodexEntriesForNewFind signal region
 
                         this |> updateUI
@@ -311,8 +319,8 @@ type Worker() =
             elif args.PreviousState.HasFlag(LogMonitorState.Batch) then         // finished read all
                 InternalSettings <- { InternalSettings with HasReadAllBeenRun = true } 
                 this |> updateUI
-                CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName FileSerializer.serializeCodexUnlocks
-                InternalSettings |> FileSerializer.serializeToFile Core internalSettingsFileName FileSerializer.serializeInternalSettings
+                CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName
+                InternalSettings |> FileSerializer.serializeToFile Core internalSettingsFileName
 
 
         member this.Name with get() = "GeoPredictor"
