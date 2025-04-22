@@ -213,6 +213,8 @@ type Worker() =
                     // When the game starts, get the current game version
                     IsValidEliteVersion <- getIfValidEliteVersion load.GameVersion load.Odyssey
                     CurrentCommander <- load.Commander
+
+                    this |> updateUI
                     
                 | :? FileHeader as newFile ->
                     // When a new file is being read, override the file version
