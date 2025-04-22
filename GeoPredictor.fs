@@ -23,7 +23,7 @@ type Worker() =
     let mutable GeoBodies = Map.empty                           // Map of all scanned bodies since the Observatory session began
     let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
     let mutable Settings = new Settings()                       // Settings for Observatory
-    let mutable CodexUnlocks = Map.empty                        // Set of all codex entries unlocked so far
+    let mutable (CodexUnlocks:Map<string,Set<CodexUnit>>) = Map.empty                        // Set of all codex entries unlocked so far
     let mutable CurrentCommander = ""                                  // Commander name for the current journal file
 
     let mutable InternalSettings =                              // Initialize internal settings that don't get exposed to Observatory
@@ -101,15 +101,15 @@ type Worker() =
             Materials = Seq.empty }             
 
     // If a body already exists, and the type of geology has not already been scanned, add the geology; if no body, create a new one
-    let buildFoundDetailBody id signal region bodies =
+    let buildFoundDetailBody id entry bodies =
         match bodies |> Map.tryFind(id) with
         | Some body ->
-            match body.GeosFound |> Map.tryFind(signal) with
+            match body.GeosFound |> Map.tryFind(entry.Signal) with
             | Some geo -> 
                 match geo with
-                | Predicted | CodexPredicted -> { body with GeosFound = body.GeosFound |> Map.add signal Matched }
+                | Predicted | CodexPredicted -> { body with GeosFound = body.GeosFound |> Map.add entry.Signal Matched }
                 | _ -> body
-            | None -> { body with GeosFound = body.GeosFound |> Map.add signal Surprise }
+            | None -> { body with GeosFound = body.GeosFound |> Map.add entry.Signal Surprise }
         | None -> { 
             BodyName = ""; 
             ShortName = ""; 
@@ -117,18 +117,18 @@ type Worker() =
             Volcanism = Parser.toVolcanismNotYetSet; 
             Temp = 0f<K>; 
             Count = 0; 
-            GeosFound = Map.empty |> Map.add signal Unmatched; 
+            GeosFound = Map.empty |> Map.add entry.Signal Unmatched; 
             Notified = false; 
-            Region = region; 
+            Region = entry.Region; 
             Materials = Seq.empty }
 
     // Set all bodies that have a signal/region combo set as CodexPredicted to Predicted
     // Used when a new Codex entry has been scanned, and all other finds of it should lose their codex predicted status
-    let updateAllPredictedCodexEntriesForNewFind signal region bodies =
+    let updateAllPredictedCodexEntriesForNewFind entry bodies =
         bodies |> Map.map (
             fun _ body -> 
-                match body.GeosFound |> Map.tryFind(signal) with
-                | Some p when p = CodexPredicted && body.Region = region -> { body with GeosFound = body.GeosFound |> Map.add signal Predicted }
+                match body.GeosFound |> Map.tryFind(entry.Signal) with
+                | Some p when p = CodexPredicted && body.Region = entry.Region -> { body with GeosFound = body.GeosFound |> Map.add entry.Signal Predicted }
                 | _ -> body)
         
     
@@ -185,6 +185,10 @@ type Worker() =
             | true -> ()
             | false ->  GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem.ID CodexUnlocks
 
+    let saveNewCodexUnlocks unlocks =
+        CodexUnlocks <- CodexUnlocks |> Map.add CurrentCommander unlocks
+        CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName
+
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
     // possible. 
@@ -203,7 +207,6 @@ type Worker() =
 
             GridCollection.Add(UIUpdater.buildNullRow)
             UI <- PluginUI(GridCollection)
-
 
 
         // Handle journal events
@@ -272,26 +275,28 @@ type Worker() =
                     match Parser.geoTypes |> List.tryFind (fun t -> t = codexEntry.Name) with
                     | Some _ -> 
                         let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
-                        let signal = Parser.toGeoSignalFromJournal codexEntry.Name
-                        let region = Parser.toRegion codexEntry.Region
+                        let entry = { Signal = Parser.toGeoSignalFromJournal codexEntry.Name; Region = Parser.toRegion codexEntry.Region }
 
                         if IsValidEliteVersion then
-                            GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id signal region GeoBodies)
+                            GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id entry GeoBodies)
 
-                        if codexEntry.IsNewEntry then
-                            let unlock = { Signal = signal; Region = region }
-                            let updatedUnlocks = 
-                                match CodexUnlocks |> Map.tryFind CurrentCommander with
-                                | Some unlocks -> 
-                                    match unlocks |> Set.contains unlock with
-                                    | true -> unlocks
-                                    | false -> unlocks |> Set.add unlock
-                                | None -> Set.empty |> Set.add { Signal = signal; Region = region } 
+                        // Check if the current commander already has this entry. If not, then add it.
+                        match CodexUnlocks |> Map.tryFind CurrentCommander with
+                        | Some unlocks -> 
+                            match unlocks |> Set.contains entry with
+                            | true -> ()
+                            | false -> 
+                                unlocks 
+                                |> Set.add entry
+                                |> saveNewCodexUnlocks
+                                GeoBodies <- GeoBodies |> updateAllPredictedCodexEntriesForNewFind entry
 
-                            CodexUnlocks <- CodexUnlocks |> Map.add CurrentCommander updatedUnlocks
-                            CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName 
-                            GeoBodies <- GeoBodies |> updateAllPredictedCodexEntriesForNewFind signal region
-
+                        | None -> 
+                            Set.empty 
+                            |> Set.add entry 
+                            |> saveNewCodexUnlocks
+                            GeoBodies <- GeoBodies |> updateAllPredictedCodexEntriesForNewFind entry
+                    
                         this |> updateUI
                     | None -> ()
 
