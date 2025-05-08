@@ -15,16 +15,16 @@ type System = { ID:uint64; Name:string }
 type Worker() =
 
     // Mutable values for interop
-    let mutable (Core:IObservatoryCore) = null                  // For interacting with Observatory Core
-    let mutable (UI:PluginUI) = null                            // For updating the Observatory UI
-    let mutable CurrentSystem = { ID = 0UL; Name = ""}          // ID of the system we're currently in
-    let mutable CurrentRegion = UnknownRegion "Uninitialized"   // Region we're currently in
-    let mutable IsValidEliteVersion = false                     // Is the log from Odyssey or not
-    let mutable GeoBodies = Map.empty                           // Map of all scanned bodies since the Observatory session began
-    let mutable GridCollection = ObservableCollection<obj>()    // For initializing UI grid
-    let mutable Settings = new Settings()                       // Settings for Observatory
-    let mutable (CodexUnlocks:Map<string,Set<CodexUnit>>) = Map.empty                        // Set of all codex entries unlocked so far
-    let mutable CurrentCommander = ""                                  // Commander name for the current journal file
+    let mutable (Core:IObservatoryCore) = null                          // For interacting with Observatory Core
+    let mutable (UI:PluginUI) = null                                    // For updating the Observatory UI
+    let mutable CurrentSystem = { ID = 0UL; Name = ""}                  // ID of the system we're currently in
+    let mutable CurrentRegion = UnknownRegion "Uninitialized"           // Region we're currently in
+    let mutable IsValidEliteVersion = false                             // Is the log from Odyssey or not
+    let mutable GeoBodies = Map.empty                                   // Map of all scanned bodies since the Observatory session began
+    let mutable GridCollection = ObservableCollection<obj>()            // For initializing UI grid
+    let mutable Settings = new Settings()                               // Settings for Observatory
+    let mutable (CodexUnlocks:Map<string,Set<CodexUnit>>) = Map.empty   // Set of all codex entries unlocked so far
+    let mutable CurrentCommander = ""                                   // Commander name for the current journal file
 
     let mutable InternalSettings =                              // Initialize internal settings that don't get exposed to Observatory
         { HasReadAllBeenRun = false; Version = Version(0,0) }
@@ -227,10 +227,12 @@ type Worker() =
                     // When a body is scanned (FSS, Proximity or NAV beacon), save/update it if it's landable and has volcanism and update the UI
                     if IsValidEliteVersion && scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty then
                         let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
+
                         let unlocks = 
                             match CodexUnlocks |> Map.tryFind CurrentCommander with
                             | Some unlocks -> unlocks
                             | None -> Set.empty
+
                         let body = 
                             buildScannedBody 
                                 id 
@@ -239,6 +241,14 @@ type Worker() =
                                 CurrentSystem
                                 unlocks
                                 GeoBodies
+
+                        let buildWorthMappingMessage systemAddress bodyID =
+                            let message = ResizeArray<obj>()
+                            message.Add("SetWorthVisiting")
+                            message.Add(systemAddress)
+                            message.Add(bodyID)
+                            message.Add(true)
+                            message
                             
                         match not body.Notified && Settings.NotifyOnGeoBody with
                         | true ->
@@ -256,6 +266,12 @@ type Worker() =
                                 buildNewCodexEntryNotification body.ShortName body.GeosFound
                                 |> buildNotificationArgs scan.BodyID Settings.VerboseNotifications)
                             |> ignore
+
+                            if Settings.NotifyEvaluatorOnNewGeoCodex then
+                                Core.SendPluginMessage(this, "Evaluator", buildWorthMappingMessage scan.SystemAddress scan.BodyID)
+                        else
+                            if Settings.NotifyEvaluatorOnGeoBody then
+                                Core.SendPluginMessage(this, "Evaluator", buildWorthMappingMessage scan.SystemAddress scan.BodyID)
                             
                         this |> updateUI
 

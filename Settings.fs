@@ -14,12 +14,15 @@ type Settings() =
     let mutable hideGrade3Materials = false
     let mutable hideGrade4Materials = false
     let mutable useChemicalSymbols = true
+    let mutable notifyEvaluatorOnGeoBody = false
+    let mutable notifyEvaluatorOnNewGeoCodex = false
 
     // Event that triggers for Settings that require UI updates when changed
     let needsUIUpdate = new Event<_>()
     member this.NeedsUIUpdate = needsUIUpdate.Publish
 
     // Turn on and off notifications on found geological bodies
+    [<SettingNewGroup("Notifications")>]
     [<SettingDisplayName("Notify on new geological body  ")>]
     member this.NotifyOnGeoBody
         with get() = notifyOnGeoBody
@@ -37,7 +40,21 @@ type Settings() =
         with get() = verboseNotifications
         and set(setting) = verboseNotifications <- setting
 
+    // Turn on and off sending notifications on found geological bodies to Evaluator
+    [<SettingNewGroup("Evaluator integration")>]
+    [<SettingDisplayName("Tell Evaluator to visit on new geological body  ")>]
+    member this.NotifyEvaluatorOnGeoBody
+        with get() = notifyEvaluatorOnGeoBody
+        and set(setting) = notifyEvaluatorOnGeoBody <- setting
+    
+    // Turn on and off sending notifications on predicted new Codex entries to Evaluator
+    [<SettingDisplayName("Tell Evaluator to visit on possible new geological codex entry  ")>]
+    member this.NotifyEvaluatorOnNewGeoCodex
+        with get() = notifyEvaluatorOnNewGeoCodex
+        and set(setting) = notifyEvaluatorOnNewGeoCodex <- setting
+
     // Only show data for the current system; requires UI update
+    [<SettingNewGroup("Display")>]
     [<SettingDisplayName("Show only current system  ")>]
     member this.OnlyShowCurrentSystem
         with get() = onlyShowCurrentSystem
@@ -62,6 +79,7 @@ type Settings() =
             needsUIUpdate.Trigger()
 
     // Filter display of body materials
+    [<SettingNewGroup("Materials filtering")>]
     [<SettingDisplayName("Hide Grade 1 materials  ")>]
     member this.HideGrade1Materials
         with get() = hideGrade1Materials
