@@ -183,7 +183,7 @@ type Worker() =
     let updateUI worker =
         match Core.IsLogMonitorBatchReading with
             | true -> ()
-            | false ->  GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem.ID CodexUnlocks
+            | false ->  GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem.ID CodexUnlocks CurrentCommander
 
     let saveNewCodexUnlocks unlocks =
         CodexUnlocks <- CodexUnlocks |> Map.add CurrentCommander unlocks

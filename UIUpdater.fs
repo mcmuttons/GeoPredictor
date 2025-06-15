@@ -147,17 +147,17 @@ module UIUpdater =
         |> String.concat "\n"
 
     // Repaint the UI
-    let updateGrid worker (core:IObservatoryCore) hasReadAllBeenRun gridRows =
+    let updateGrid worker (core:IObservatoryCore) hasReadAllBeenRun currentCommander gridRows =
         core.ClearGrid(worker, buildNullRow)
-        core.AddGridItem(worker, { emptyRow with Body = externalVersion })
+        core.AddGridItem(worker, { emptyRow with Body = externalVersion; Type = "CMDR: " + currentCommander })
         if not hasReadAllBeenRun then
             core.AddGridItem(worker, { emptyRow with Type = firstRunMessage })
         else
             core.AddGridItems(worker, Seq.cast(gridRows))
 
     // Filter bodies for display, turn them into a single list of entries, then update the UI
-    let updateUI worker core settings hasReadAllBeenRun currentSys codexUnlocks bodies = 
+    let updateUI worker core settings hasReadAllBeenRun currentSys codexUnlocks currentCommander bodies = 
         bodies 
         |> filterBodiesForOutput settings currentSys
         |> Seq.collect (fun body -> buildGridEntry settings codexUnlocks body.Value)
-        |> updateGrid worker core hasReadAllBeenRun
+        |> updateGrid worker core hasReadAllBeenRun currentCommander
