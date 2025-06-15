@@ -12,22 +12,35 @@ open EliteDangerousRegionMap
 type Notification = { Title:string; Verbose:string; Terse: string }
 type System = { ID:uint64; Name:string }
 
+type WorkerState = {
+    Core: IObservatoryCore                      // For interacting with Observatory Core    
+    UI: PluginUI                                // For updating the Observatory UI
+    GridCollection: ObservableCollection<obj>   // For initializing UI grid
+    CurrentSystem: System                       // ID of the system we're currently in
+    CurrentRegion: Region                       // Region we're currently in
+    CurrentCommander: string                    // Commander name for the current journal file
+    GeoBodies: Map<BodyId, GeoBody>             // Map of all scanned bodies since the Observatory session began
+    CodexUnlocks: Map<string, Set<CodexUnit>>   // Set of all codex entries unlocked so far
+    Settings: Settings                          // Settings for Observatory
+    IsValidEliteVersion: bool                   // Is the log from Odyssey or not
+    InternalSettings: InternalSettings          // Internal settings that don't get exposed to Observatory
+}
+
 type Worker() =
 
-    // Mutable values for interop
-    let mutable (Core:IObservatoryCore) = null                          // For interacting with Observatory Core
-    let mutable (UI:PluginUI) = null                                    // For updating the Observatory UI
-    let mutable CurrentSystem = { ID = 0UL; Name = ""}                  // ID of the system we're currently in
-    let mutable CurrentRegion = UnknownRegion "Uninitialized"           // Region we're currently in
-    let mutable IsValidEliteVersion = false                             // Is the log from Odyssey or not
-    let mutable GeoBodies = Map.empty                                   // Map of all scanned bodies since the Observatory session began
-    let mutable GridCollection = ObservableCollection<obj>()            // For initializing UI grid
-    let mutable Settings = new Settings()                               // Settings for Observatory
-    let mutable (CodexUnlocks:Map<string,Set<CodexUnit>>) = Map.empty   // Set of all codex entries unlocked so far
-    let mutable CurrentCommander = ""                                   // Commander name for the current journal file
-
-    let mutable InternalSettings =                              // Initialize internal settings that don't get exposed to Observatory
-        { HasReadAllBeenRun = false; Version = Version(0,0) }
+    let mutable State = {
+        Core = null :> IObservatoryCore
+        UI = null :> PluginUI
+        GridCollection = ObservableCollection<obj>() 
+        CurrentSystem = { ID = 0UL; Name = "" }
+        CurrentRegion = UnknownRegion "Uninitialized"
+        CurrentCommander = ""
+        GeoBodies = Map.empty
+        CodexUnlocks = Map.empty
+        Settings = new Settings()
+        IsValidEliteVersion = false
+        InternalSettings = { HasReadAllBeenRun = false; Version = Version(0,0) }
+    }
 
     // Immutable internal values
     let geoSignalType = "$SAA_SignalType_Geological;"                       // Journal value for a geological signal
@@ -180,14 +193,30 @@ type Worker() =
     //
     // Helpers for the interface functions that deal with mutable data
     //
-    let updateUI worker =
-        match Core.IsLogMonitorBatchReading with
+
+    // Repaint the UI
+    let updateGrid worker state gridRows =
+        state.Core.ClearGrid(worker, UIUpdater.buildNullRow)
+        state.Core.AddGridItem(worker, { UIUpdater.emptyRow with Body = UIUpdater.externalVersion; Type = "CMDR: " + state.CurrentCommander })
+        if not state.InternalSettings.HasReadAllBeenRun then
+            state.Core.AddGridItem(worker, { UIUpdater.emptyRow with Type = UIUpdater.firstRunMessage })
+        else
+            state.Core.AddGridItems(worker, Seq.cast(gridRows))
+
+    // Filter bodies for display, turn them into a single list of entries, then update the UI
+    let updateUI state worker =
+        match state.Core.IsLogMonitorBatchReading with
             | true -> ()
-            | false ->  GeoBodies |> UIUpdater.updateUI worker Core Settings InternalSettings.HasReadAllBeenRun CurrentSystem.ID CodexUnlocks CurrentCommander
+            | false -> 
+                state.GeoBodies
+                |> UIUpdater.filterBodiesForOutput state.Settings state.CurrentSystem.ID
+                |> Seq.collect (fun body -> UIUpdater.buildGridEntry state.Settings state.CodexUnlocks body.Value)
+                |> updateGrid worker state
+
 
     let saveNewCodexUnlocks unlocks =
-        CodexUnlocks <- CodexUnlocks |> Map.add CurrentCommander unlocks
-        CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName
+        State <- { State with CodexUnlocks = State.CodexUnlocks.Add(State.CurrentCommander, unlocks) }
+        State.CodexUnlocks |> FileSerializer.serialize State.Core codexUnlocksFileName
 
     // Interface for interop with Observatory, and entry point for the DLL.
     // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
@@ -196,40 +225,48 @@ type Worker() =
     
         // Initialize interop and UI
         member this.Load core = 
-            Core <- core
+            let internalSettings, codexUnlocks =
+                match FileSerializer.deserialize<InternalSettings> State.InternalSettings core.PluginStorageFolder internalSettingsFileName with
+                | { HasReadAllBeenRun = false; Version = v } when v < settingsVersion ->
+                    { HasReadAllBeenRun = false; Version = settingsVersion }, Map.empty
+                | settings ->
+                    settings, FileSerializer.deserialize<Map<string,Set<CodexUnit>>> Map.empty core.PluginStorageFolder codexUnlocksFileName
 
-            InternalSettings <- FileSerializer.deserializeFromFile<InternalSettings> InternalSettings Core.PluginStorageFolder internalSettingsFileName
+            let gridCollection = ObservableCollection<obj>()
+            gridCollection.Add(UIUpdater.buildNullRow)
 
-            if not InternalSettings.HasReadAllBeenRun || InternalSettings.Version < Version(1,0) then 
-                InternalSettings <- { InternalSettings with HasReadAllBeenRun = false; Version = settingsVersion }
-            else
-                CodexUnlocks <- FileSerializer.deserializeFromFile<Map<string,Set<CodexUnit>>> Map.empty Core.PluginStorageFolder codexUnlocksFileName
-
-            GridCollection.Add(UIUpdater.buildNullRow)
-            UI <- PluginUI(GridCollection)
-
-
+            State <- 
+                { State with 
+                    Core = core
+                    InternalSettings = internalSettings
+                    CodexUnlocks = codexUnlocks
+                    GridCollection = gridCollection
+                    UI = PluginUI(gridCollection)
+                }
+           
         // Handle journal events
         member this.JournalEvent event =
             match (event:JournalBase) with 
                 | :? LoadGame as load ->
-                    // When the game starts, get the current game version
-                    IsValidEliteVersion <- getIfValidEliteVersion load.GameVersion load.Odyssey
-                    CurrentCommander <- load.Commander
+                    State <- 
+                        { State with 
+                            IsValidEliteVersion = getIfValidEliteVersion load.GameVersion load.Odyssey
+                            CurrentCommander = load.Commander
+                        }
 
-                    this |> updateUI
+                    this |> updateUI State
                     
                 | :? FileHeader as newFile ->
                     // When a new file is being read, override the file version
-                    IsValidEliteVersion <- getIfValidEliteVersion newFile.GameVersion newFile.Odyssey
+                    State <- { State with IsValidEliteVersion = getIfValidEliteVersion newFile.GameVersion newFile.Odyssey }
 
                 | :? Scan as scan ->                
                     // When a body is scanned (FSS, Proximity or NAV beacon), save/update it if it's landable and has volcanism and update the UI
-                    if IsValidEliteVersion && scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty then
+                    if State.IsValidEliteVersion && scan.Landable && scan.Volcanism |> Parser.isNotNullOrEmpty then
                         let id = { SystemAddress = scan.SystemAddress; BodyId = scan.BodyID }
 
                         let unlocks = 
-                            match CodexUnlocks |> Map.tryFind CurrentCommander with
+                            match State.CodexUnlocks |> Map.tryFind State.CurrentCommander with
                             | Some unlocks -> unlocks
                             | None -> Set.empty
 
@@ -237,10 +274,10 @@ type Worker() =
                             buildScannedBody 
                                 id 
                                 scan
-                                CurrentRegion
-                                CurrentSystem
+                                State.CurrentRegion
+                                State.CurrentSystem
                                 unlocks
-                                GeoBodies
+                                State.GeoBodies
 
                         let buildWorthMappingMessage systemAddress bodyID =
                             let message = ResizeArray<obj>()
@@ -250,41 +287,41 @@ type Worker() =
                             message.Add(true)
                             message
                             
-                        match not body.Notified && Settings.NotifyOnGeoBody with
+                        match not body.Notified && State.Settings.NotifyOnGeoBody with
                         | true ->
-                            Core.SendNotification(
+                            State.Core.SendNotification(
                                 buildGeoPlanetNotification body.ShortName body.Volcanism body.Count body.BodyType
-                                |> buildNotificationArgs scan.BodyID Settings.VerboseNotifications) 
+                                |> buildNotificationArgs scan.BodyID State.Settings.VerboseNotifications) 
                             |> ignore
 
-                            GeoBodies <- GeoBodies.Add(id, { body with Notified = true })
+                            State <- { State with GeoBodies = State.GeoBodies.Add(id, { body with Notified = true }) }
                         | false -> 
-                            GeoBodies <- GeoBodies.Add(id, body)
+                            State <- { State with GeoBodies = State.GeoBodies.Add(id, body) }
 
-                        if body.GeosFound |> Map.exists (fun _ s -> s = CodexPredicted) && Settings.NotifyOnNewGeoCodex && not body.Notified then
-                            Core.SendNotification(
+                        if body.GeosFound |> Map.exists (fun _ s -> s = CodexPredicted) && State.Settings.NotifyOnNewGeoCodex && not body.Notified then
+                            State.Core.SendNotification(
                                 buildNewCodexEntryNotification body.ShortName body.GeosFound
-                                |> buildNotificationArgs scan.BodyID Settings.VerboseNotifications)
+                                |> buildNotificationArgs scan.BodyID State.Settings.VerboseNotifications)
                             |> ignore
 
-                            if Settings.NotifyEvaluatorOnNewGeoCodex then
-                                Core.SendPluginMessage(this, "Evaluator", buildWorthMappingMessage scan.SystemAddress scan.BodyID)
+                            if State.Settings.NotifyEvaluatorOnNewGeoCodex then
+                                State.Core.SendPluginMessage(this, "Evaluator", buildWorthMappingMessage scan.SystemAddress scan.BodyID)
                         else
-                            if Settings.NotifyEvaluatorOnGeoBody then
-                                Core.SendPluginMessage(this, "Evaluator", buildWorthMappingMessage scan.SystemAddress scan.BodyID)
+                            if State.Settings.NotifyEvaluatorOnGeoBody then
+                                State.Core.SendPluginMessage(this, "Evaluator", buildWorthMappingMessage scan.SystemAddress scan.BodyID)
                             
-                        this |> updateUI
+                        this |> updateUI State
 
                 | :? SAASignalsFound as sigs ->                   
                     // When signals are discovered through DSS, save/update them if they're geology and update the UI, display a notification
-                    if IsValidEliteVersion then
+                    if State.IsValidEliteVersion then
                         sigs.Signals 
                         |> Seq.filter (fun s -> s.Type = geoSignalType)
                         |> Seq.iter (fun s ->
                             let id = { SystemAddress = sigs.SystemAddress; BodyId = sigs.BodyID }
-                            GeoBodies <- GeoBodies.Add(id, buildSignalCountBody id sigs.BodyName s.Count CurrentRegion GeoBodies))
+                            State <- { State with GeoBodies = State.GeoBodies.Add(id, buildSignalCountBody id sigs.BodyName s.Count State.CurrentRegion State.GeoBodies) } )
 
-                        this |> updateUI
+                        this |> updateUI State
 
                 | :? CodexEntry as codexEntry ->
                     // When something is scanned with the comp. scanner, save/update the result if it's geological, then update the UI
@@ -293,11 +330,11 @@ type Worker() =
                         let id = { BodyId = codexEntry.BodyID; SystemAddress = codexEntry.SystemAddress }
                         let entry = { Signal = Parser.toGeoSignalFromJournal codexEntry.Name; Region = Parser.toRegion codexEntry.Region }
 
-                        if IsValidEliteVersion then
-                            GeoBodies <- GeoBodies.Add(id, buildFoundDetailBody id entry GeoBodies)
+                        if State.IsValidEliteVersion then
+                            State <- { State with GeoBodies = State.GeoBodies.Add(id, buildFoundDetailBody id entry State.GeoBodies) }
 
                         // Check if the current commander already has this entry. If not, then add it.
-                        match CodexUnlocks |> Map.tryFind CurrentCommander with
+                        match State.CodexUnlocks |> Map.tryFind State.CurrentCommander with
                         | Some unlocks -> 
                             match unlocks |> Set.contains entry with
                             | true -> ()
@@ -305,50 +342,61 @@ type Worker() =
                                 unlocks 
                                 |> Set.add entry
                                 |> saveNewCodexUnlocks
-                                GeoBodies <- GeoBodies |> updateAllPredictedCodexEntriesForNewFind entry
+                                State <- { State with GeoBodies = State.GeoBodies |> updateAllPredictedCodexEntriesForNewFind entry }
 
                         | None -> 
                             Set.empty 
                             |> Set.add entry 
                             |> saveNewCodexUnlocks
-                            GeoBodies <- GeoBodies |> updateAllPredictedCodexEntriesForNewFind entry
+                            State <- { State with GeoBodies = State.GeoBodies |> updateAllPredictedCodexEntriesForNewFind entry }
                     
-                        this |> updateUI
+                        this |> updateUI State
                     | None -> ()
 
                 | :? FSDJump as jump ->
                     // Update current system after an FSD jump, then update the UI
                     if not ((jump :? CarrierJump) && (not (jump :?> CarrierJump).Docked)) then 
                         let struct (x, y, z) = (jump.StarPos.x, jump.StarPos.y, jump.StarPos.z)
-                        CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
-                        CurrentSystem <- setCurrentSystem CurrentSystem { ID = jump.SystemAddress; Name = jump.StarSystem }
-                        this |> updateUI
+                        State <- 
+                            { State with 
+                                CurrentRegion = Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
+                                CurrentSystem = setCurrentSystem State.CurrentSystem { ID = jump.SystemAddress; Name = jump.StarSystem } 
+                            }
+
+                        this |> updateUI State
 
                 | :? Location as location ->
                     // Update current system when our location is updated, then update the UI
                     let struct (x, y, z) = (location.StarPos.x, location.StarPos.y, location.StarPos.z)
-                    CurrentRegion <- Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
-                    CurrentSystem <- setCurrentSystem CurrentSystem { ID = location.SystemAddress; Name = location.StarSystem }
-                    this |> updateUI
+
+                    State <-
+                        { State with 
+                            CurrentRegion = Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
+                            CurrentSystem = setCurrentSystem State.CurrentSystem { ID = location.SystemAddress; Name = location.StarSystem }
+                        }
+
+                    this |> updateUI State
 
                 | _ -> ()
 
         member this.LogMonitorStateChanged args =
             if args.NewState.HasFlag(LogMonitorState.Batch) then                // started read all
-                Core.ClearGrid(this, UIUpdater.buildNullRow)
+                State.Core.ClearGrid(this, UIUpdater.buildNullRow)
             elif args.NewState.HasFlag(LogMonitorState.PreRead) then ()         // started preread
             elif args.PreviousState.HasFlag(LogMonitorState.PreRead) then       // finished preread
-                this |> updateUI
+                this |> updateUI State
             elif args.PreviousState.HasFlag(LogMonitorState.Batch) then         // finished read all
-                InternalSettings <- { InternalSettings with HasReadAllBeenRun = true } 
-                this |> updateUI
-                CodexUnlocks |> FileSerializer.serializeToFile Core codexUnlocksFileName
-                InternalSettings |> FileSerializer.serializeToFile Core internalSettingsFileName
+                State <- { State with InternalSettings = { State.InternalSettings with HasReadAllBeenRun = true } } 
+
+                this |> updateUI State
+
+                State.CodexUnlocks |> FileSerializer.serialize State.Core codexUnlocksFileName
+                State.InternalSettings |> FileSerializer.serialize State.Core internalSettingsFileName
 
 
         member this.Name with get() = "GeoPredictor"
         member this.Version with get() = Assembly.GetExecutingAssembly().GetName().Version.ToString(3)
-        member this.PluginUI with get() = UI
+        member this.PluginUI with get() = State.UI
         member this.ColumnSorter with get() = Observatory.Framework.Sorters.NoOpColumnSorter()
 
         member this.AboutInfo with get() = AboutInfo (
@@ -360,10 +408,10 @@ type Worker() =
             )       
 
         member this.Settings 
-            with get() = Settings
+            with get() = State.Settings
             and set(settings) = 
-                Settings <- settings :?> Settings
+                State <- { State with Settings = settings :?> Settings }
 
                 // Update the UI if a setting that requires it has been changed by subscribing to event
-                Settings.NeedsUIUpdate.Add(fun () -> this |> updateUI)
+                State.Settings.NeedsUIUpdate.Add(fun () -> this |> updateUI State)
             
