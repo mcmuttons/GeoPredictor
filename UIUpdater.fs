@@ -4,7 +4,7 @@ open Observatory.Framework
 open Observatory.Framework.Interfaces
 open System.Reflection
 
-module UIUpdater =
+module GridBuilder =
 
     // An row of data to be displayed in the UI
     type UIOutputRow = { 
@@ -36,7 +36,7 @@ module UIUpdater =
         Region:string }
 
     // Null row for initializing the UI
-    let buildNullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Materials = null; Volcanism = null; Temp = null; Region = null }
+    let nullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Materials = null; Volcanism = null; Temp = null; Region = null }
     let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Materials = ""; Volcanism = ""; Temp = ""; Region = "" }
 
     // Version for output
@@ -144,3 +144,12 @@ module UIUpdater =
             "you scan the geo again, it"
             "should be remembered :)" ]
         |> String.concat "\n"
+
+    let buildGrid hasReadAllBeenRun currentCommander gridRows =
+        let versionRow = Seq.singleton { emptyRow with Body = externalVersion; Type = "CMDR: " + currentCommander }
+        let gridItems = 
+            match hasReadAllBeenRun with
+            | true -> gridRows
+            | false -> Seq.singleton { emptyRow with Type = firstRunMessage } 
+
+        Seq.append versionRow gridItems

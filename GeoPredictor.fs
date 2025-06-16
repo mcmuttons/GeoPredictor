@@ -194,24 +194,19 @@ type Worker() =
     // Helpers for the interface functions that deal with mutable data
     //
 
-    // Repaint the UI
-    let updateGrid worker state gridRows =
-        state.Core.ClearGrid(worker, UIUpdater.buildNullRow)
-        state.Core.AddGridItem(worker, { UIUpdater.emptyRow with Body = UIUpdater.externalVersion; Type = "CMDR: " + state.CurrentCommander })
-        if not state.InternalSettings.HasReadAllBeenRun then
-            state.Core.AddGridItem(worker, { UIUpdater.emptyRow with Type = UIUpdater.firstRunMessage })
-        else
-            state.Core.AddGridItems(worker, Seq.cast(gridRows))
-
     // Filter bodies for display, turn them into a single list of entries, then update the UI
     let updateUI state worker =
         match state.Core.IsLogMonitorBatchReading with
             | true -> ()
             | false -> 
-                state.GeoBodies
-                |> UIUpdater.filterBodiesForOutput state.Settings state.CurrentSystem.ID
-                |> Seq.collect (fun body -> UIUpdater.buildGridEntry state.Settings state.CodexUnlocks body.Value)
-                |> updateGrid worker state
+                state.Core.ClearGrid(worker, GridBuilder.nullRow)
+                let gridRows =
+                    state.GeoBodies
+                    |> GridBuilder.filterBodiesForOutput state.Settings state.CurrentSystem.ID
+                    |> Seq.collect (fun body -> GridBuilder.buildGridEntry state.Settings state.CodexUnlocks body.Value)
+                    |> GridBuilder.buildGrid state.InternalSettings.HasReadAllBeenRun state.CurrentCommander
+                    |> Seq.cast
+                state.Core.AddGridItems(worker, gridRows)
 
 
     let saveNewCodexUnlocks unlocks =
@@ -233,7 +228,7 @@ type Worker() =
                     settings, FileSerializer.deserialize<Map<string,Set<CodexUnit>>> Map.empty core.PluginStorageFolder codexUnlocksFileName
 
             let gridCollection = ObservableCollection<obj>()
-            gridCollection.Add(UIUpdater.buildNullRow)
+            gridCollection.Add(GridBuilder.nullRow)
 
             State <- 
                 { State with 
@@ -381,7 +376,7 @@ type Worker() =
 
         member this.LogMonitorStateChanged args =
             if args.NewState.HasFlag(LogMonitorState.Batch) then                // started read all
-                State.Core.ClearGrid(this, UIUpdater.buildNullRow)
+                State.Core.ClearGrid(this, GridBuilder.nullRow)
             elif args.NewState.HasFlag(LogMonitorState.PreRead) then ()         // started preread
             elif args.PreviousState.HasFlag(LogMonitorState.PreRead) then       // finished preread
                 this |> updateUI State
