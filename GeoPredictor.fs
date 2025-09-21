@@ -7,7 +7,7 @@ open Observatory.Framework.Interfaces
 open System
 open System.Collections.ObjectModel
 open System.Reflection
-open EliteDangerousRegionMap
+//open EliteDangerousRegionMap
 
 type Notification = { Title:string; Verbose:string; Terse: string }
 type System = { ID:uint64; Name:string }
@@ -354,7 +354,7 @@ type Worker() =
                         let struct (x, y, z) = (jump.StarPos.x, jump.StarPos.y, jump.StarPos.z)
                         State <- 
                             { State with 
-                                CurrentRegion = Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
+                                CurrentRegion = Parser.toRegion (EliteDangerousRegionMap.RegionMap.FindRegion(x, y, z)).Name
                                 CurrentSystem = setCurrentSystem State.CurrentSystem { ID = jump.SystemAddress; Name = jump.StarSystem } 
                             }
 
@@ -366,7 +366,7 @@ type Worker() =
 
                     State <-
                         { State with 
-                            CurrentRegion = Parser.toRegion (RegionMap.FindRegion(x, y, z)).Name
+                            CurrentRegion = Parser.toRegion (EliteDangerousRegionMap.RegionMap.FindRegion(x, y, z)).Name
                             CurrentSystem = setCurrentSystem State.CurrentSystem { ID = location.SystemAddress; Name = location.StarSystem }
                         }
 
