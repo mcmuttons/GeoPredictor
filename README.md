@@ -1,7 +1,7 @@
 # GeoPredictor Plugin for Observatory Core
 **Note:** This plugin requires [Observatory Core](https://github.com/Xjph/ObservatoryCore) to work, so if you don't have that, start there! :)
 
-[Direct download of GeoPredictor.eop if you're using ObservatoryCore v1.2.0 or newer](https://github.com/mcmuttons/GeoPredictor/releases/download/v2.2.0/GeoPredictor.eop)
+[Direct download of GeoPredictor.eop if you're using ObservatoryCore v1.2.0 or newer](https://github.com/mcmuttons/GeoPredictor/releases/download/v2.3.0/GeoPredictor.eop)
 
 [Direct download of GeoPredictor.eop if you're using an older ObservatoryCore version (no longer updated)](https://github.com/mcmuttons/GeoPredictor/releases/download/v1.4.5/GeoPredictor.eop)
 
@@ -25,11 +25,11 @@ The meaning of the columns are as follows:
 
 Here is a sample entry for the system **Bleia Eohn KG-D b16-1**, where body **5** has some geology, and the results in the Found column tell you the status of each.
 
-![image](https://github.com/mcmuttons/GeoPredictor/assets/668213/30797a54-a11c-4f5e-94c5-adc64b18be44)
+![image](https://github.com/user-attachments/assets/16e2c502-9e94-4b04-96e8-749ae3421487)
 
-- The Water Ice Fumaroles and Water Gas Vents (marked with :heavy_check_mark:) have been both predicted and found for this body. This is perfect!
-- The Water Fumaroles (marked with both ❔ and 🔷) have been predicted for this body (due to the ❔), but not found, and should also be a new codex entry (due to the 🔷). Codex entries are tracked per region, so Water Fumaroles in Inner Orion Spur is different from Water Fumaroles in Lyra's Song.
-- The Water Ice Geysers (marked with :x:) have not been predicted, but found anyway. This also adds the message above, `❗Possible additional geo❗` and the count number getting a `(4?)` added to it. If there still is a geological feature still marked with a ❔, it's worth looking for it, despite the signal count. The signal count reported refers to types of geology, but sometimes there could be two variants of the same type (i.e. Water Fumaroles and Water Ice Fumaroles).
+- The Carbon Dioxide Ice Geysers and Fumaroles (marked with :heavy_check_mark:) have been both predicted and found for this body. This is perfect!
+- The Silicate Vapour and Silicate Magma features (marked with both ❔ and 🔷) have been predicted for this body (due to the ❔), but not found, and should also be a new codex entry (due to the 🔷). Codex entries are tracked per region, so Silicate Vapour Fumaroles in Inner Orion Spur is different from Silicate Vapour Fumaroles in Lyra's Song.
+- Missing from the example is a feature that has not been predicted, but found anyway. It will be marked with :x:, along with the message, `❗Possible additional geo❗`. If there still is a geological feature still marked with a ❔, it's worth looking for it, despite the signal count. 
 
 ## Installation
 - Download the newest release from this page.
@@ -39,9 +39,13 @@ Here is a sample entry for the system **Bleia Eohn KG-D b16-1**, where body **5*
 - The first time you run it, there should be a message reminding you to click the `Read All` button to set the plugin up for first time use. This goes through all of your game journals that Elite has saved on your computer and figures out which geological features you've scanned before. Until you've run `Read All`, this message will continue to appear, since GeoPredictor won't have full functionality until you have. Please note that if your Elite journals are incomplete (files deleted, you reinstalled on a new computer and didn't bring your files, etc), GeoPredictor won't be able to see that you've encountered geology recorded in the missing files and you will get false positives. This is easily fixed by scanning the geology in question.
 
 ## Settings
-You can find the settings in Observatory by selecting `Core` on the left side, and then the `GeoPredictor` tab. All settings are cumulative if applicable, so if you turn on both showing only current system and showing only bodies with scanned geology, then you will see only bodies with scanned geology in the current system. 
+You can find the settings for GeoPredictor by either right-clicking the GeoPredictor tab in the main view and choosing `GeoPredictor Settings` or going to the `Core` tab and clicking the far right icon with the little down arrow on it and selecting `GeoPredictor Settings` there. All settings are cumulative if applicable, so if you turn on both showing only current system and showing only bodies with scanned geology, then you will see only bodies with scanned geology in the current system. 
 
 Note that `Read All` also adheres to these settings, so you might have to change them to see everything that has been read.
+
+The settings are divided into categories.
+
+### Notifications 
 
 #### Notify on new geological body
 This turns on and off whether a standard Observatory notification should be shown when a geological body is scanned.
@@ -58,6 +62,18 @@ This turns on and off whether notifcation text should be verbose or terse. Espec
 
 Default **on**
 
+### Evaluator Integration
+
+#### Tell Evaluator to visit on new geological body
+This will add any body with geological signals to Evaluator's visit list.
+
+Default **off**
+
+#### Tell Evaluator to visit on possible new geological codex entry
+This will only add bodies with new geological codex entries to Evaluator's visit list.
+
+### Display
+
 #### Show only current system
 This will only show bodies with geology on the in the system you're in. Otherwise you'll see all the bodies since this Observatory session started. 
 
@@ -69,7 +85,7 @@ This will only show bodies where at least one geological item has been scanned o
 Default: **off**
 
 #### Show only bodies with failed prediction
-This will only show bodies where GeoPredictor has found something it didn't predict. 
+This will only show bodies where GeoPredictor has found something it didn't predict. This is mostly useful for debugging or reporting errors.
 
 Default: **off**
 
@@ -92,7 +108,7 @@ Should you come across an unexpected entry (red X), then you could help me quite
 - Take a screenshot of the Observatory window or part of it, with the all the information for that body visible
 - Just note down the details (including the body type, volcanism and temp)
 
-You can either track me down on Discord (mcmuttons) -- I often hang out both on the Observatory and Stellar Cartography Guild Disocord servers, or you can just start an Issue here on my github page and put the info there.
+You can either track me down on Discord (mcmuttons) -- I'm regularly on the official ObservatoryCore Discord server, or you can just start an Issue here on my github page and put the info there.
 
 Thank you and good luck out there!!
 
