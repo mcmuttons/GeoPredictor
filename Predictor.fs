@@ -25,7 +25,7 @@ module Predictor =
             | _ -> [ UnexpectedSignal $"Unexpected volcanism: {Parser.toVolcanismOut volcanism}" ]
         | RockyIceBody ->
             match (volcanism.Level, volcanism.Type) with
-            | Unspecified, IronMagma -> [ SulphurDioxideIceFumaroleSignal; IronMagmaLavaSpoutSignal ]
+            | Unspecified, IronMagma -> [ SulphurDioxideIceFumaroleSignal; SulphurDioxideGasVentSignal; IronMagmaLavaSpoutSignal ]
             | Minor, IronMagma -> [ SulphurDioxideIceFumaroleSignal; SulphurDioxideFumaroleSignal; SulphurDioxideGasVentSignal; IronMagmaLavaSpoutSignal ]
             | Major, SilicateMagma -> [ SilicateVapourIceFumaroleSignal; SulphurDioxideGasVentSignal; SilicateMagmaLavaSpoutSignal ]
             | Unspecified, SilicateMagma -> [ SilicateVapourIceFumaroleSignal; SilicateMagmaLavaSpoutSignal; SulphurDioxideGasVentSignal ]
