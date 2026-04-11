@@ -48,6 +48,9 @@ type Worker() =
     let internalSettingsFileName = "GeoPredictor-InternalSettings.json"     // Filename to save internal settings in
     let settingsVersion = Version(1,0)                                      // Version of the settings file
 
+    let geopredictorGuid = new Guid("e361861d-0e91-458a-bc22-9b3f1039d074") // Geopredictor's own Guid for plugin messages
+    let evaluatorGuid = new Guid("4d617474-4702-0045-5641-4c5541544f52")    // Guid for plugin messages to Evaluator
+
     // Update current system if it has changed
     let setCurrentSystem oldSys newSys = 
         match oldSys.ID = 0UL || oldSys.ID <> newSys.ID with
@@ -275,12 +278,12 @@ type Worker() =
                                 State.GeoBodies
 
                         let buildWorthMappingMessage systemAddress bodyID =
-                            let message = ResizeArray<obj>()
-                            message.Add("SetWorthVisiting")
-                            message.Add(systemAddress)
-                            message.Add(bodyID)
-                            message.Add(true)
-                            message
+                            let payload = System.Collections.Generic.Dictionary<string, obj>()
+                            payload.Add("ID64", systemAddress)
+                            payload.Add("BodyID", bodyID)
+                            payload.Add("IsWorthMapping", true)                                                      
+
+                            PluginMessage("SetWorthVisiting", payload)
                             
                         match not body.Notified && State.Settings.NotifyOnGeoBody with
                         | true ->
@@ -300,10 +303,10 @@ type Worker() =
                             |> ignore
 
                             if State.Settings.NotifyEvaluatorOnNewGeoCodex then
-                                State.Core.SendPluginMessage(this, "Evaluator", buildWorthMappingMessage scan.SystemAddress scan.BodyID)
+                                State.Core.SendPluginMessage(this, evaluatorGuid, buildWorthMappingMessage scan.SystemAddress scan.BodyID)
                         else
                             if State.Settings.NotifyEvaluatorOnGeoBody then
-                                State.Core.SendPluginMessage(this, "Evaluator", buildWorthMappingMessage scan.SystemAddress scan.BodyID)
+                                State.Core.SendPluginMessage(this, evaluatorGuid, buildWorthMappingMessage scan.SystemAddress scan.BodyID)
                             
                         this |> updateUI State
 
