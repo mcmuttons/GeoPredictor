@@ -84,7 +84,7 @@ module GridBuilder =
                     |> Map.toList
                     |> List.map (fun (s,d) -> 
                         { emptyRow with                          
-                            Body = body.BodyName; 
+                            Body = "" // body.BodyName; 
                             Found = 
                                 match d with 
                                 | Matched -> predictionSuccess 
