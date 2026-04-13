@@ -12,29 +12,15 @@ module GridBuilder =
         Body:string;
         
         [<ColumnSuggestedWidth(85)>]
-        Count:string; 
-
-        [<ColumnSuggestedWidth(85)>]
-        Found:string; 
+        Signals:string; 
 
         [<ColumnSuggestedWidth(250)>]
-        Type:string; 
-
-        [<ColumnSuggestedWidth(150)>]
-        BodyType: string; 
-
-        [<ColumnSuggestedWidth(300)>]
-        Materials: string; 
-
-        [<ColumnSuggestedWidth(250)>]
-        Volcanism:string; 
-
-        [<ColumnSuggestedWidth(100)>]
-        Region:string }
+        Details:string; 
+    }
 
     // Null row for initializing the UI
-    let nullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Materials = null; Volcanism = null; Region = null }
-    let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Materials = ""; Volcanism = ""; Region = "" }
+    let nullRow = { Body = null; Signals = null; Details = null }
+    let emptyRow = { Body = ""; Signals = ""; Details = "" }
 
     // Version for output
     let externalVersion = "GeoPredictor " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3)
@@ -82,14 +68,14 @@ module GridBuilder =
                     |> List.map (fun (s,d) -> 
                         { emptyRow with                          
                             Body = "" // body.BodyName; 
-                            Found = 
+                            Signals = 
                                 match d with 
                                 | Matched -> predictionSuccess 
                                 | Predicted -> predictionUnknown
                                 | CodexPredicted -> predictionUnknown + newCodexEntry
                                 | Unmatched -> "" 
                                 | Surprise -> predictionFailed                             
-                            Type = Parser.toGeoSignalOut s; }))
+                            Details = Parser.toGeoSignalOut s; }))
 
     // Build a grid entry for a body, with detail entries if applicable
     let filterMaterialsForOutput (settings:Settings) materials =
@@ -102,28 +88,37 @@ module GridBuilder =
         |> Seq.map (fun m -> sprintf "%s (%.1f%%)" (Parser.toMaterialOut settings.UseChemicalSymbols m.MaterialName) m.Percent)
         |> String.concat ", "
 
-    let buildGridEntry settings codexUnlocks body =   
-        let firstRow = 
-            { emptyRow with
-                Body = body.BodyName
-                BodyType = Parser.toBodyTypeOut body.BodyType
-                Count = 
-                    match body.Count with 
-                    | 0 -> "FSS/DSS" 
-                    | _ when body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise ) -> $"{body.Count} ({body.Count + 1}?)"
-                    | _ when body.Count <> body.GeosFound.Count -> $"{body.Count} ({body.GeosFound.Count})"
-                    | _ -> body.Count.ToString()
-                Type = 
-                    match body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise) with
-                    | true -> $"{warning}Possible additional geo{warning}"
-                    | false -> ""
-                Materials = body.Materials |> filterMaterialsForOutput settings
-                Volcanism = Parser.toVolcanismOut body.Volcanism
-                Region = Parser.toRegionOut body.Region }
+    let firstRow body = 
+        { emptyRow with
+            Body = body.BodyName
+            Signals = 
+                match body.Count with 
+                | 0 -> "FSS/DSS" 
+                | _ when body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise ) -> $"{body.Count} ({body.Count + 1}?)"
+                | _ when body.Count <> body.GeosFound.Count -> $"{body.Count} ({body.GeosFound.Count})"
+                | _ -> body.Count.ToString()
+            Details = 
+                sprintf "%s body with %s in %s" (Parser.toBodyTypeOut body.BodyType) (Parser.toVolcanismOut body.Volcanism) (Parser.toRegionOut body.Region)
+        }
+                
+    let addMaterialsRow (body:GeoBody) (settings:Settings) firstRow =
+        let materials = body.Materials |> filterMaterialsForOutput settings
+        match materials with
+        | "" -> [firstRow]
+        | _ ->  [firstRow; { emptyRow with Body = ""; Signals = ""; Details = $"Materials: {materials}" }]
+         
+    let addWarningRow body rows =
+        match body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise) with
+        | false -> rows
+        | true -> rows |> List.append [{ emptyRow with Body = ""; Signals = warning; Details = $"{warning}Possible additional geo{warning}" }]
 
+    let buildGridEntry settings codexUnlocks body =   
         body
         |> buildGeoDetailEntries codexUnlocks
-        |> List.append [firstRow]
+        |> List.append (
+            firstRow body 
+            |> addMaterialsRow body settings 
+            |> addWarningRow body)
 
     let firstRunMessage =
         [   "Click 'Read All' to update database!"
@@ -142,10 +137,11 @@ module GridBuilder =
         |> String.concat "\n"
 
     let buildGrid hasReadAllBeenRun currentCommander gridRows =
-        let versionRow = Seq.singleton { emptyRow with Body = externalVersion; Type = "CMDR: " + currentCommander }
+        let versionRow = { emptyRow with Body = externalVersion; Details = "CMDR: " + currentCommander }
+        let separatorRow = { emptyRow with Body = "--------------------"; Signals = ""; Details = "-----------------------------" }
         let gridItems = 
             match hasReadAllBeenRun with
             | true -> gridRows
-            | false -> Seq.singleton { emptyRow with Type = firstRunMessage } 
+            | false -> Seq.singleton { emptyRow with Details = firstRunMessage } 
 
-        Seq.append versionRow gridItems
+        Seq.append [versionRow; separatorRow] gridItems
