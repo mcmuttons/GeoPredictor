@@ -29,15 +29,12 @@ module GridBuilder =
         [<ColumnSuggestedWidth(250)>]
         Volcanism:string; 
 
-        [<ColumnSuggestedWidth(85)>]
-        Temp:string; 
-
         [<ColumnSuggestedWidth(100)>]
         Region:string }
 
     // Null row for initializing the UI
-    let nullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Materials = null; Volcanism = null; Temp = null; Region = null }
-    let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Materials = ""; Volcanism = ""; Temp = ""; Region = "" }
+    let nullRow = { Body = null; Count = null; Found = null; Type = null; BodyType = null; Materials = null; Volcanism = null; Region = null }
+    let emptyRow = { Body = ""; Count = ""; Found = ""; Type = ""; BodyType = ""; Materials = ""; Volcanism = ""; Region = "" }
 
     // Version for output
     let externalVersion = "GeoPredictor " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3)
@@ -122,7 +119,6 @@ module GridBuilder =
                     | false -> ""
                 Materials = body.Materials |> filterMaterialsForOutput settings
                 Volcanism = Parser.toVolcanismOut body.Volcanism
-                Temp = (floor (float body.Temp)).ToString() + "K"
                 Region = Parser.toRegionOut body.Region }
 
         body

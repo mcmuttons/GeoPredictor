@@ -183,8 +183,7 @@ type GeoBody = {
     BodyName:string; 
     ShortName:string; 
     BodyType:BodyType; 
-    Volcanism:Volcanism; 
-    Temp:float32<K>; 
+    Volcanism:Volcanism;
     Count:int; 
     GeosFound:Map<GeologySignal,PredictionStatus>; 
     Notified:bool; 
