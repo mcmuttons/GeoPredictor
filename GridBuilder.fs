@@ -14,7 +14,7 @@ module GridBuilder =
         [<ColumnSuggestedWidth(85)>]
         Signals:string; 
 
-        [<ColumnSuggestedWidth(250)>]
+        [<ColumnSuggestedWidth(500)>]
         Details:string; 
     }
 
@@ -98,7 +98,7 @@ module GridBuilder =
                 | _ when body.Count <> body.GeosFound.Count -> $"{body.Count} ({body.GeosFound.Count})"
                 | _ -> body.Count.ToString()
             Details = 
-                sprintf "%s body with %s in %s" (Parser.toBodyTypeOut body.BodyType) (Parser.toVolcanismOut body.Volcanism) (Parser.toRegionOut body.Region)
+                sprintf "%s body with %s" (Parser.toBodyTypeOut body.BodyType) (Parser.toVolcanismOut body.Volcanism)
         }
                 
     let addMaterialsRow (body:GeoBody) (settings:Settings) firstRow =
