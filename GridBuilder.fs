@@ -101,7 +101,7 @@ module GridBuilder =
                 sprintf "%s body with %s" (Parser.toBodyTypeOut body.BodyType) (Parser.toVolcanismOut body.Volcanism)
         }
                 
-    let addMaterialsRow (body:GeoBody) (settings:Settings) firstRow =
+    let addMaterialsRow body settings firstRow =
         let materials = body.Materials |> filterMaterialsForOutput settings
         match materials with
         | "" -> [firstRow]
