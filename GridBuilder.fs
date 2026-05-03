@@ -96,7 +96,7 @@ module GridBuilder =
                 | 0 -> "FSS/DSS" 
                 | _ when body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise ) -> $"{body.Count} ({body.Count + 1}?)"
                 | _ when body.Count <> body.GeosFound.Count -> $"{body.Count} ({body.GeosFound.Count})"
-                | _ -> body.Count.ToString()
+                | _ -> body.Count.ToString() + " signals"
             Details = 
                 sprintf "%s body with %s" (Parser.toBodyTypeOut body.BodyType) (Parser.toVolcanismOut body.Volcanism)
         }
@@ -105,7 +105,7 @@ module GridBuilder =
         let materials = body.Materials |> filterMaterialsForOutput settings
         match materials with
         | "" -> [firstRow]
-        | _ ->  [firstRow; { emptyRow with Body = ""; Signals = ""; Details = $"Materials: {materials}" }]
+        | _ ->  [firstRow; { emptyRow with Body = ""; Signals = "Materials"; Details = materials }]
          
     let addWarningRow body rows =
         match body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise) with
