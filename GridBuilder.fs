@@ -95,7 +95,7 @@ module GridBuilder =
                 match body.Count with 
                 | 0 -> "FSS/DSS" 
                 | _ when body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise ) -> $"{body.Count} ({body.Count + 1}?)"
-                | _ when body.Count <> body.GeosFound.Count -> $"{body.Count} ({body.GeosFound.Count})"
+                | _ when body.Count <> body.GeosFound.Count -> $"{body.Count} ({body.GeosFound.Count}) signals"
                 | _ -> body.Count.ToString() + " signals"
             Details = 
                 sprintf "%s body with %s" (Parser.toBodyTypeOut body.BodyType) (Parser.toVolcanismOut body.Volcanism)
