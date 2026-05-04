@@ -94,7 +94,7 @@ module GridBuilder =
             Signals = 
                 match body.Count with 
                 | 0 -> "FSS/DSS" 
-                | _ when body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise ) -> $"{body.Count} ({body.Count + 1}?)"
+                | _ when body.GeosFound.Values |> Seq.exists (fun p -> p = Surprise ) -> $"{body.Count} ({body.Count + 1}?) signals"
                 | _ when body.Count <> body.GeosFound.Count -> $"{body.Count} ({body.GeosFound.Count}) signals"
                 | _ -> body.Count.ToString() + " signals"
             Details = 
