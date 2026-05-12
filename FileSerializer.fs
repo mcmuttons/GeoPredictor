@@ -10,19 +10,22 @@ module FileSerializer =
                             .Default()
                             .ToJsonSerializerOptions()
 
+    let deserialize<'T> faultValue (json:string) =
+        try
+            JsonSerializer.Deserialize<'T>(json, serializeOptions)
+        with
+            | _ -> faultValue
+
     // Serialize to and from json file
-    let deserialize<'T> faultValue path filename =
+    let fileDeserialize<'T> faultValue path filename =
         let fullPath = path + filename
-        match File.Exists(fullPath) with
-        | true ->
-            try
-                JsonSerializer.Deserialize<'T>(File.ReadAllText(fullPath), serializeOptions)
-            with
-                | _ -> faultValue
-        | false -> 
+
+        if File.Exists(fullPath) then
+            deserialize<'T> faultValue (File.ReadAllText(fullPath))
+        else
             faultValue
 
-    let serialize (core:IObservatoryCore) filename content  =
+    let fileSerialize (core:IObservatoryCore) filename content  =
         if not core.IsLogMonitorBatchReading then
             let fullPath = core.PluginStorageFolder + filename
             let serialized = JsonSerializer.Serialize(content, serializeOptions)
