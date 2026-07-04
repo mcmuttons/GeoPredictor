@@ -2,7 +2,7 @@
   {
     "plugin": "geopredictor",
     "version": "2.4.0",
-    "url": "testurl",
+    "url": "https://example.com/",
     "minCoreVersion": "1.4.3"
   }
 ]
