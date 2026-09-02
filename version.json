@@ -1,8 +1,6 @@
-[
-  {
+{
     "plugin": "geopredictor",
     "version": "2.4.0",
-    "url": "https://example.com/",
+    "downloadurl": "https://example.com/",
     "minCoreVersion": "1.4.3"
-  }
-]
+}
