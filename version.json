@@ -1,6 +1,6 @@
 {
-    "plugin": "geopredictor",
-    "version": "2.4.0",
-    "downloadurl": "https://example.com/",
-    "minCoreVersion": "1.4.3"
+  "plugin": "geopredictor",
+  "version": "2.4.0",
+  "downloadurl": "https://github.com/mcmuttons/GeoPredictor/releases/download/v2.3.0/GeoPredictor.eop",
+  "minCoreVersion": "1.4.3"
 }
