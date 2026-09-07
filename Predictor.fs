@@ -38,7 +38,7 @@ module Predictor =
             | Major, WaterGeysers -> [ WaterIceGeyserSignal; WaterIceFumaroleSignal; WaterGasVentSignal ]
             | Unspecified, WaterGeysers -> [ WaterIceFumaroleSignal; WaterGasVentSignal; WaterIceGeyserSignal ]
             | Minor, WaterGeysers -> [ WaterIceGeyserSignal; WaterIceFumaroleSignal; WaterGasVentSignal ]
-            | Minor, CarbonDioxideGeysers -> [ CarbonDioxideIceGeyserSignal; CarbonDioxideIceFumaroleSignal; CarbonDioxideGasVentSignal ]
+            | Minor, CarbonDioxideGeysers -> [ CarbonDioxideIceGeyserSignal; CarbonDioxideIceFumaroleSignal; CarbonDioxideGasVentSignal ] // should in theory also have CarbonDioxideFumaroleSignal, but I think they disappeared with Odyssey
             | _ -> [ UnexpectedSignal $"Unexpected volcanism: {Parser.toVolcanismOut volcanism}" ]
         | IcyBody ->
             match (volcanism.Level, volcanism.Type) with
