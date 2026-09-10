@@ -16,6 +16,7 @@ type Settings() =
     let mutable useChemicalSymbols = true
     let mutable notifyEvaluatorOnGeoBody = false
     let mutable notifyEvaluatorOnNewGeoCodex = false
+    let mutable updateAutomatically = true
 
     // Event that triggers for Settings that require UI updates when changed
     let needsUIUpdate = new Event<_>()
@@ -114,3 +115,10 @@ type Settings() =
         and set(setting) =
             useChemicalSymbols <- setting
             needsUIUpdate.Trigger()
+
+    [<SettingNewGroup("Automatic updating")>]
+    [<SettingDisplayName("Update automatically")>]
+    member this.UpdateAutomatically
+        with get() = updateAutomatically
+        and set(setting) = updateAutomatically <- setting
+

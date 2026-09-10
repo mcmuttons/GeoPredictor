@@ -6,6 +6,7 @@ open Observatory.Framework.Files.Journal
 open Observatory.Framework.Interfaces
 open System
 open System.Collections.ObjectModel
+open System.IO
 open System.Reflection
 //open EliteDangerousRegionMap
 
@@ -24,6 +25,7 @@ type WorkerState = {
     Settings: Settings                          // Settings for Observatory
     IsValidEliteVersion: bool                   // Is the log from Odyssey or not
     InternalSettings: InternalSettings          // Internal settings that don't get exposed to Observatory
+    Version: Version                            // Current geopredictor version
 }
 
 type Worker() =
@@ -39,7 +41,8 @@ type Worker() =
         CodexUnlocks = Map.empty
         Settings = new Settings()
         IsValidEliteVersion = false
-        InternalSettings = { HasReadAllBeenRun = false; Version = Version(0,0) }
+        InternalSettings = { HasReadAllBeenRun = false; Version = Version(0,0); LastUpdateCheck = DateTime.MinValue }
+        Version = Assembly.GetExecutingAssembly().GetName().Version
     }
 
     // Immutable internal values
@@ -205,27 +208,43 @@ type Worker() =
                     |> Seq.collect (fun body -> GridBuilder.buildGridEntry state.Settings state.CodexUnlocks body.Value)
                     |> GridBuilder.buildGrid state.InternalSettings.HasReadAllBeenRun state.CurrentCommander
                     |> Seq.cast
-                state.Core.AddGridItems(worker, gridRows)
+                state.Core.AddGridItems(worker, gridRows) 
 
 
     let saveNewCodexUnlocks unlocks =
         State <- { State with CodexUnlocks = State.CodexUnlocks.Add(State.CurrentCommander, unlocks) }
-        State.CodexUnlocks |> FileSerializer.serialize State.Core codexUnlocksFileName
+        State.CodexUnlocks |> Serializer.fileSerialize State.Core.IsLogMonitorBatchReading (State.Core.PluginStorageFolder + codexUnlocksFileName)
 
     // Interface for interop with Observatory, and entry point for the DLL.
-    // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as
+    // The goal has been to keep all mutable operations within this scope to isolate imperative code as much as  
     // possible. 
     interface IObservatoryWorker with  
+
+        // Check for plugin update and download if available
+        member this.CheckForPluginUpdate() = 
+            let obsVersion = Version.Parse(State.Core.Version) 
+            let result = Updater.checkForUpdatesSync obsVersion State.Version State.InternalSettings.LastUpdateCheck State.Core.HttpClient  
+
+            State <- { State with InternalSettings = { State.InternalSettings with LastUpdateCheck = DateTime.Now } }
+            State.InternalSettings |> Serializer.fileSerialize State.Core.IsLogMonitorBatchReading (State.Core.PluginStorageFolder + internalSettingsFileName)
+
+            match result with
+            | Updater.NoUpdate -> PluginUpdateInfo()
+            | Updater.UpdateAvailable versionInfo -> 
+                if State.Settings.UpdateAutomatically then
+                    Updater.downloadUpdateSync versionInfo State.Core.UpdatedPluginsFolder State.Core.HttpClient
+                    PluginUpdateInfo(Status = PluginUpdateStatus.UpdateReady)                    
+                else
+                    PluginUpdateInfo(Status = PluginUpdateStatus.UpdateAvailable, Url = versionInfo.DownloadUrl)
     
         // Initialize interop and UI
         member this.Load core = 
             let internalSettings, codexUnlocks =
-                match FileSerializer.deserialize<InternalSettings> State.InternalSettings core.PluginStorageFolder internalSettingsFileName with
+                match Serializer.fileDeserialize<InternalSettings> State.InternalSettings (core.PluginStorageFolder + internalSettingsFileName) with
                 | { HasReadAllBeenRun = false; Version = v } when v < settingsVersion ->
-                    { HasReadAllBeenRun = false; Version = settingsVersion }, Map.empty
+                    { HasReadAllBeenRun = false; Version = settingsVersion; LastUpdateCheck = DateTime.MinValue }, Map.empty
                 | settings ->
-                    settings, FileSerializer.deserialize<Map<string,Set<CodexUnit>>> Map.empty core.PluginStorageFolder codexUnlocksFileName
-
+                    settings, Serializer.fileDeserialize<Map<string,Set<CodexUnit>>> Map.empty (core.PluginStorageFolder + codexUnlocksFileName)
             let gridCollection = ObservableCollection<obj>()
             gridCollection.Add(GridBuilder.nullRow)
 
@@ -384,12 +403,12 @@ type Worker() =
 
                 this |> updateUI State
 
-                State.CodexUnlocks |> FileSerializer.serialize State.Core codexUnlocksFileName
-                State.InternalSettings |> FileSerializer.serialize State.Core internalSettingsFileName
+                State.CodexUnlocks |> Serializer.fileSerialize State.Core.IsLogMonitorBatchReading (State.Core.PluginStorageFolder + codexUnlocksFileName)
+                State.InternalSettings |> Serializer.fileSerialize State.Core.IsLogMonitorBatchReading (State.Core.PluginStorageFolder + internalSettingsFileName)
 
 
         member this.Name with get() = "GeoPredictor"
-        member this.Version with get() = Assembly.GetExecutingAssembly().GetName().Version.ToString(3)
+        member this.Version with get() = State.Version.ToString(3)
         member this.PluginUI with get() = State.UI
         member this.ColumnSorter with get() = Observatory.Framework.Sorters.NoOpColumnSorter()
 

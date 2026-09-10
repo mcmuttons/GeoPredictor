@@ -18,13 +18,17 @@
   <ItemGroup>
     <Compile Include="SharedTypes.fs" />
     <Compile Include="Parser.fs" />
-    <Compile Include="FileSerializer.fs" />
+    <Compile Include="Serializer.fs" />
     <Compile Include="Predictor.fs" />
     <Compile Include="Settings.fs" />
     <Compile Include="DisplayPanel.fs" />
     <Compile Include="GridBuilder.fs" />
+    <Compile Include="Updater.fs" />
     <Compile Include="GeoPredictor.fs" />
+    <Content Include="version.json" />
   </ItemGroup>
+
+  <ItemGroup />
 
   <ItemGroup>
     <PackageReference Include="FSharp.SystemTextJson" Version="1.3.13" />
@@ -41,6 +45,6 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if exist &quot;F:\ObservatoryPortable\plugins\&quot; (&#xD;&#xA;xcopy /Y &quot;$(TargetDir)GeoPredictor.dll&quot; &quot;F:\ObservatoryPortable\plugins&quot;&#xD;&#xA;)" />
+    <Exec Command="if exist &quot;F:\ObservatoryPortable\plugins\&quot; (&#xD;&#xA;xcopy /Y &quot;$(TargetDir)GeoPredictor.dll&quot; &quot;F:\Code\ObservatoryCore\ObservatoryCore\bin\Debug\net8.0-windows7.0\plugins&quot;&#xD;&#xA;)" />
   </Target>
 </Project>

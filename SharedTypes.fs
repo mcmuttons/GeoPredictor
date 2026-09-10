@@ -1,10 +1,9 @@
 ﻿namespace GeoPredictor
 
-open FSharp.Data.UnitSystems.SI.UnitSymbols
 open System
 
 // Settings that aren't exposed to Observatory, but tracked only in GeoPredictor
-type InternalSettings = { HasReadAllBeenRun:bool; Version:Version }
+type InternalSettings = { HasReadAllBeenRun:bool; Version:Version; LastUpdateCheck:DateTime }
 
 // A unique ID for a body
 type BodyId = { SystemAddress:uint64; BodyId:int }
