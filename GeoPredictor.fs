@@ -6,9 +6,7 @@ open Observatory.Framework.Files.Journal
 open Observatory.Framework.Interfaces
 open System
 open System.Collections.ObjectModel
-open System.IO
 open System.Reflection
-//open EliteDangerousRegionMap
 
 type Notification = { Title:string; Verbose:string; Terse: string }
 type System = { ID:uint64; Name:string }
@@ -26,6 +24,7 @@ type WorkerState = {
     IsValidEliteVersion: bool                   // Is the log from Odyssey or not
     InternalSettings: InternalSettings          // Internal settings that don't get exposed to Observatory
     Version: Version                            // Current geopredictor version
+    DisplayMessages: string list                // Messages to display in the UI
 }
 
 type Worker() =
@@ -43,6 +42,7 @@ type Worker() =
         IsValidEliteVersion = false
         InternalSettings = { HasReadAllBeenRun = false; Version = Version(0,0); LastUpdateCheck = DateTime.MinValue }
         Version = Assembly.GetExecutingAssembly().GetName().Version
+        DisplayMessages = []
     }
 
     // Immutable internal values
@@ -197,16 +197,38 @@ type Worker() =
     //
 
     // Filter bodies for display, turn them into a single list of entries, then update the UI
+    
+    let firstRunMessage =
+        [   "Click 'Read All' to update database!"
+            "NOTE: This can take several"
+            "minutes, but only needs to"
+            "be done once!"
+            ""
+            "Go make some coffee."
+            "I dunno."
+            ""
+            "ALSO NOTE: If your Elite game"
+            "logs are incomplete, you might"
+            "get false Codex positives. If"
+            "you scan the geo again, it"
+            "should be remembered :)" ]               
+    
     let updateUI state worker =
         match state.Core.IsLogMonitorBatchReading with
             | true -> ()
             | false -> 
                 state.Core.ClearGrid(worker, GridBuilder.nullRow)
+                let messages =
+                    if state.InternalSettings.HasReadAllBeenRun then
+                        state.DisplayMessages
+                    else
+                        firstRunMessage @ state.DisplayMessages
+
                 let gridRows =
                     state.GeoBodies
                     |> GridBuilder.filterBodiesForOutput state.Settings state.CurrentSystem.ID
                     |> Seq.collect (fun body -> GridBuilder.buildGridEntry state.Settings state.CodexUnlocks body.Value)
-                    |> GridBuilder.buildGrid state.InternalSettings.HasReadAllBeenRun state.CurrentCommander
+                    |> GridBuilder.buildGrid messages state.CurrentCommander
                     |> Seq.cast
                 state.Core.AddGridItems(worker, gridRows) 
 
@@ -233,8 +255,10 @@ type Worker() =
             | Updater.UpdateAvailable versionInfo -> 
                 if State.Settings.UpdateAutomatically then
                     Updater.downloadUpdateSync versionInfo State.Core.UpdatedPluginsFolder State.Core.HttpClient
+                    State <- { State with DisplayMessages = State.DisplayMessages @ [ $"New version {versionInfo.Version} downloaded. Restart to update." ] }
                     PluginUpdateInfo(Status = PluginUpdateStatus.UpdateReady)                    
                 else
+                    State <- { State with DisplayMessages = State.DisplayMessages @ [ $"New version {versionInfo.Version} available. Download from the Core tab." ] }
                     PluginUpdateInfo(Status = PluginUpdateStatus.UpdateAvailable, Url = versionInfo.DownloadUrl)
     
         // Initialize interop and UI

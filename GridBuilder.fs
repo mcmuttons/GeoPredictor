@@ -120,28 +120,14 @@ module GridBuilder =
             |> addMaterialsRow body settings 
             |> addWarningRow body)
 
-    let firstRunMessage =
-        [   "Click 'Read All' to update database!"
-            "NOTE: This can take several"
-            "minutes, but only needs to"
-            "be done once!"
-            ""
-            "Go make some coffee."
-            "I dunno."
-            ""
-            "ALSO NOTE: If your Elite game"
-            "logs are incomplete, you might"
-            "get false Codex positives. If"
-            "you scan the geo again, it"
-            "should be remembered :)" ]
-        |> String.concat "\n"
-
-    let buildGrid hasReadAllBeenRun currentCommander gridRows =
+    let buildGrid (messages: string list) currentCommander gridRows =
         let versionRow = { emptyRow with Body = externalVersion; Details = "CMDR: " + currentCommander }
+        let displayMessages = messages |> List.map (fun m -> { emptyRow with Details = m })
         let separatorRow = { emptyRow with Body = "--------------------"; Signals = ""; Details = "-----------------------------" }
-        let gridItems = 
-            match hasReadAllBeenRun with
-            | true -> gridRows
-            | false -> Seq.singleton { emptyRow with Details = firstRunMessage } 
 
-        Seq.append [versionRow; separatorRow] gridItems
+        seq {
+            yield versionRow
+            yield! displayMessages
+            yield separatorRow
+            yield! gridRows
+        }
