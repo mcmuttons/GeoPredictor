@@ -266,6 +266,7 @@ type Worker() =
                     { HasReadAllBeenRun = false; Version = settingsVersion; LastUpdateCheck = DateTime.MinValue }, Map.empty
                 | settings ->
                     settings, Serializer.fileDeserialize<Map<string,Set<CodexUnit>>> Map.empty (core.PluginStorageFolder + codexUnlocksFileName)
+
             let gridCollection = ObservableCollection<obj>()
             gridCollection.Add(GridBuilder.nullRow)
 
