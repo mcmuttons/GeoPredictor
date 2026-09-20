@@ -200,18 +200,15 @@ type Worker() =
     
     let firstRunMessage =
         [   "Click 'Read All' to update database!"
-            "NOTE: This can take several"
-            "minutes, but only needs to"
-            "be done once!"
+            "NOTE: This can take several minutes,"
+            "but only needs to be done once!"
             ""
             "Go make some coffee."
             "I dunno."
             ""
-            "ALSO NOTE: If your Elite game"
-            "logs are incomplete, you might"
-            "get false Codex positives. If"
-            "you scan the geo again, it"
-            "should be remembered :)" ]               
+            "ALSO NOTE: If your Elite game logs are incomplete,"
+            "you might get false Codex positives. If you scan the" 
+            "geo again, it should be remembered :)" ]               
     
     let updateUI state worker =
         match state.Core.IsLogMonitorBatchReading with
